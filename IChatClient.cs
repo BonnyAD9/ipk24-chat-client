@@ -38,5 +38,5 @@ public interface IChatClient
     /// Check for any new messages, returns all new messages. Doesn't block.
     /// </summary>
     /// <returns>All new messages.</returns>
-    public List<string> Recieve();
+    public List<string> Receive();
 }
