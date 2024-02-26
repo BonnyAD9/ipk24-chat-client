@@ -10,11 +10,13 @@ public interface IChatClient
     /// <summary>
     /// Authorize the user
     /// </summary>
-    /// <param name="username">User name of the user.</param>
-    /// <param name="secret">Password of the user.</param>
+    /// <param name="username">User name of the user</param>
+    /// <param name="secret">Password of the user</param>
+    /// <param name="displayName">Display name of the user</param>
     public void Authorize(
         ReadOnlySpan<char> username,
-        ReadOnlySpan<char> secret
+        ReadOnlySpan<char> secret,
+        string? displayName = null
     );
 
     /// <summary>
