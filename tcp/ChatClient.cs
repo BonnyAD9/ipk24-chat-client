@@ -27,7 +27,7 @@ public class ChatClient : IChatClient
         }
     }
 
-    public void Connect(IPAddress address, ushort port)
+    public void Connect(string address, ushort port)
     {
         if (State != ChatClientState.Stopped)
         {

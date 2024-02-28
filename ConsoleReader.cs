@@ -16,6 +16,9 @@ class ConsoleReader
                 typed.Clear();
                 return res;
             }
+            if (key.Key == ConsoleKey.C && key.Modifiers == ConsoleModifiers.Control) {
+                throw new CtrlCException();
+            }
             if (key.KeyChar != 0)
             {
                 typed.Append(key.KeyChar);
