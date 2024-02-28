@@ -7,7 +7,7 @@ namespace IpkChat2024Client.Tcp;
 
 record class ErrMessage(string Content, string DisplayName);
 
-record class ReplyMessage(bool Type, string Content);
+record class ReplyMessage(bool Ok, string Content);
 
 record class MsgMessage(string Sender, string Content);
 
@@ -17,6 +17,16 @@ class MessageParser
 {
     private ArrayBufferWriter<byte> readed = new();
 
+    /// <summary>
+    /// Parses/continues to parse message with data available in the stream.
+    /// </summary>
+    /// <param name="s">Stream to read the message from.</param>
+    /// <returns>
+    /// null when no whole message was received, otherwise the given message.
+    /// </returns>
+    /// <exception cref="InvalidDataException">
+    /// Thrown when the data is invalid message
+    /// </exception>
     public object? Parse(NetworkStream s)
     {
         if (!ReadMsg(s)) {
@@ -24,6 +34,7 @@ class MessageParser
         }
 
         var msg = Encoding.ASCII.GetString(readed.WrittenSpan).AsSpan();
+        readed.Clear();
         if (msg.StartsWith("ERROR "))
         {
             return ParseErr(msg);
@@ -70,14 +81,6 @@ class MessageParser
 
     private ReplyMessage ParseReply(ReadOnlySpan<char> msg)
     {
-        [DoesNotReturn]
-        void Throw()
-        {
-            throw new InvalidDataException(
-                "The received reply message has wrong signature"
-            );
-        }
-
         msg = msg["REPLY ".Length..];
         bool ok;
         const string okMsg = "OK ";

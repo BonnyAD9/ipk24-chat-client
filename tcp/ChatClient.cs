@@ -3,19 +3,20 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Linq;
+using System.Data;
 
 namespace IpkChat2024Client.Tcp;
 
 public class ChatClient : IChatClient
 {
-    private TcpClient tcpClient = new TcpClient();
+    private TcpClient tcpClient = new();
 
     public ChatClientState State { get; private set; }
         = ChatClientState.Stopped;
 
-    private byte[]? authorizeMsg;
-
     private string? displayName;
+
+    private MessageParser parser = new();
 
     public string DisplayName
     {
@@ -187,7 +188,7 @@ public class ChatClient : IChatClient
         Bye();
     }
 
-    public List<string> Receive()
+    public object? Receive()
     {
         if (State == ChatClientState.Stopped)
         {
@@ -199,22 +200,83 @@ public class ChatClient : IChatClient
         var stream = tcpClient.GetStream();
         if (!stream.DataAvailable)
         {
-            return new();
+            return null;
         }
-
-        List<string> msgs = new();
 
         switch (State)
         {
-            case ChatClientState.Started:
+            case ChatClientState.Started or ChatClientState.Error:
                 var msg = "Recieved unexpected message: Didn't expect any "
                     + "message.";
                 Err(msg);
                 throw new ProtocolViolationException(msg);
+            case ChatClientState.Authorized:
+                return ReceiveAuthorize();
+            case ChatClientState.Open:
+                return ReceiveOpen();
+            case ChatClientState.End:
+                return ReceiveEnd();
         }
 
-        // TODO
-        throw new NotImplementedException();
+        return null;
+    }
+
+    private object? ReceiveEnd() => ParseMessage();
+
+    private object? ReceiveOpen()
+    {
+        switch (ParseMessage())
+        {
+            case null:
+                return null;
+            case MsgMessage msg:
+                return msg;
+            case ErrMessage msg:
+                Bye();
+                return msg;
+            case ByeMessage msg:
+                State = ChatClientState.End;
+                return msg;
+            default:
+                const string err =
+                    "Recieved unexpected message, expected MSG, ERR or BYE.";
+                Err(err);
+                throw new ProtocolViolationException(err);
+        }
+    }
+
+    private object? ReceiveAuthorize()
+    {
+        switch (ParseMessage())
+        {
+            case null:
+                return null;
+            case ReplyMessage msg:
+                if (msg.Ok)
+                {
+                    State = ChatClientState.Open;
+                }
+                return msg;
+            case ErrMessage msg:
+                Bye();
+                return msg;
+            default:
+                const string err =
+                    "Recieved unexpected message, expected REPLY or ERR.";
+                Err(err);
+                throw new ProtocolViolationException(err);
+        }
+    }
+
+    private object? ParseMessage()
+    {
+        try {
+            return parser.Parse(tcpClient.GetStream());
+        } catch (InvalidDataException ex) {
+            var msg = "Failed to parse message: " + ex.Message;
+            Err(msg);
+            throw new InvalidDataException(msg, ex);
+        }
     }
 
     private static void ValidateUsername(ReadOnlySpan<char> username)
