@@ -1,7 +1,4 @@
-﻿using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
-using IpkChat2024Client.Tcp;
+﻿using IpkChat2024Client.Tcp;
 using TcpChatClient = IpkChat2024Client.Tcp.ChatClient;
 
 namespace IpkChat2024Client;
@@ -145,6 +142,22 @@ static class Program
 
     static void Receive()
     {
-        throw new NotImplementedException();
+        switch (client.Receive()) {
+            case ErrMessage msg:
+                Console.Error.WriteLine(
+                    $"ERR FROM {msg.DisplayName}: {msg.Content}"
+                );
+                break;
+            case ReplyMessage msg:
+                if (msg.Ok) {
+                    Console.Error.WriteLine($"Success: {msg.Content}");
+                } else {
+                    Console.Error.WriteLine($"Failure: {msg.Content}");
+                }
+                break;
+            case MsgMessage msg:
+                Console.WriteLine($"{msg.Sender}: {msg.Content}");
+                break;
+        }
     }
 }
