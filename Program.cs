@@ -8,7 +8,7 @@ static class Program
 
     static readonly TimeSpan sleepTime = TimeSpan.FromMilliseconds(10);
     static ConsoleReader reader = new();
-    static IChatClient client = new TcpChatClient();
+    static IChatClient client = null!;
 
     public static void Main(string[] args)
     {
@@ -16,7 +16,11 @@ static class Program
         Console.Write("Conneting... ");
         chat.Connect("anton5.fit.vutbr.cz", 4567);
         client = chat;
-        Console.TreatControlCAsInput = true;
+
+        if (!Console.IsInputRedirected) {
+            Console.TreatControlCAsInput = true;
+        }
+
         Console.WriteLine("Done!");
         reader.Init();
 

@@ -5,9 +5,14 @@ class ConsoleReader
 {
     private StringBuilder typed = new();
     private int position = 0;
+    private bool isOutConsole = !Console.IsOutputRedirected;
+    private bool isErrConsole = !Console.IsErrorRedirected;
+    private bool isInConsole = !Console.IsInputRedirected;
 
     public void Init() {
-        Term.Save();
+        if (isOutConsole) {
+            Term.Save();
+        }
     }
 
     public string? TryReadLine()
@@ -18,20 +23,35 @@ class ConsoleReader
             if (key.KeyChar == '\n' || key.Key == ConsoleKey.Enter)
             {
                 position = typed.Length;
-                ToPosition();
-                Console.Write("\n\r");
+
+                if (isOutConsole) {
+                    ToPosition();
+                }
+
+                Ln();
                 var res = typed.ToString();
                 typed.Clear();
-                Term.Save();
+
+                if (isOutConsole) {
+                    Term.Save();
+                }
+
                 position = 0;
                 return res;
             }
+
             if (key.Key == ConsoleKey.C && key.Modifiers == ConsoleModifiers.Control) {
                 position = typed.Length;
                 ToPosition();
-                Console.Write("\n\r");
+                Ln();
                 throw new CtrlCException();
             }
+
+            if (!isInConsole) {
+                typed.Append(key.KeyChar);
+                continue;
+            }
+
             switch (key.Key)
             {
                 case ConsoleKey.Backspace:
@@ -97,6 +117,11 @@ class ConsoleReader
     }
 
     public void WriteLine(string str) {
+        if (!isOutConsole) {
+            Console.WriteLine(str);
+            return;
+        }
+
         Term.Form(
             Term.restore,
             Term.eraseFromCursor,
@@ -109,6 +134,11 @@ class ConsoleReader
     }
 
     public void EWriteLine(string str) {
+        if (!isErrConsole) {
+            Console.Error.WriteLine(str);
+            return;
+        }
+
         Term.Form(
             Term.restore,
             Term.eraseFromCursor
@@ -123,6 +153,10 @@ class ConsoleReader
     }
 
     private void MoveLeft() {
+        if (!isOutConsole) {
+            return;
+        }
+
         if (Console.CursorLeft == 0) {
             Console.Write(Term.upEnd, 1);
         } else {
@@ -131,6 +165,10 @@ class ConsoleReader
     }
 
     private void MoveRight() {
+        if (!isOutConsole) {
+            return;
+        }
+
         if (Console.CursorLeft == Console.BufferWidth - 1) {
             Term.Form(Term.downStart, 1);
         } else {
@@ -139,11 +177,19 @@ class ConsoleReader
     }
 
     private void PrintFromPosition() {
+        if (!isOutConsole) {
+            return;
+        }
+
         Term.Form(Term.eraseFromCursor, typed.ToString()[position..]);
         ToPosition();
     }
 
     private void ToPosition() {
+        if (!isOutConsole) {
+            return;
+        }
+
         Term.Restore();
         var width = Console.BufferWidth;
         var right = position % width;
@@ -153,6 +199,14 @@ class ConsoleReader
         }
         if (down != 0) {
             Term.Down(down);
+        }
+    }
+
+    private void Ln() {
+        if (isOutConsole) {
+            Console.Write("\r\n");
+        } else {
+            Console.WriteLine();
         }
     }
 }
