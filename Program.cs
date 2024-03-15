@@ -1,4 +1,5 @@
-﻿using IpkChat2024Client.Tcp;
+﻿using System.Text.RegularExpressions;
+using IpkChat2024Client.Tcp;
 using TcpChatClient = IpkChat2024Client.Tcp.ChatClient;
 
 namespace IpkChat2024Client;
@@ -9,11 +10,17 @@ static class Program
     static readonly TimeSpan sleepTime = TimeSpan.FromMilliseconds(10);
     static ConsoleReader reader = new();
     static IChatClient client = null!;
+    static bool nonStandard =
+        Environment.GetEnvironmentVariable("IS_BONNYAD9") == "YES";
 
     public static void Main(string[] args)
     {
         TcpChatClient chat = new();
-        Console.Write("Conneting... ");
+
+        if (nonStandard) {
+            Console.Write("Conneting... ");
+        }
+
         chat.Connect("anton5.fit.vutbr.cz", 4567);
         client = chat;
 
@@ -21,7 +28,10 @@ static class Program
             Console.TreatControlCAsInput = true;
         }
 
-        Console.WriteLine("Done!");
+        if (nonStandard) {
+            Console.WriteLine("Done!");
+        }
+
         reader.Init();
 
         while (true)
@@ -76,6 +86,13 @@ static class Program
         {
             client.Send(c);
             return;
+        }
+
+        switch (c)
+        {
+            case "/clear" or "/claer":
+                reader.Clear();
+                return;
         }
 
         var cmd = c.AsSpan()[1..];

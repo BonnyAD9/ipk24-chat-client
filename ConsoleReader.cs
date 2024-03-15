@@ -8,6 +8,7 @@ class ConsoleReader
     private bool isOutConsole = !Console.IsOutputRedirected;
     private bool isErrConsole = !Console.IsErrorRedirected;
     private bool isInConsole = !Console.IsInputRedirected;
+    private int lastWidth = 0;
 
     public void Init() {
         if (isOutConsole) {
@@ -17,18 +18,27 @@ class ConsoleReader
 
     public string? TryReadLine()
     {
+        if (isOutConsole) {
+            var newWidth = Console.BufferWidth;
+            if (newWidth != lastWidth) {
+                lastWidth = newWidth;
+                Term.Form(Term.restore, Term.eraseFromCursor, typed);
+                ToPosition();
+            }
+        }
+
         while (Console.KeyAvailable)
         {
-            var key = Console.ReadKey();
+            var key = Console.ReadKey(true);
             if (key.KeyChar == '\n' || key.Key == ConsoleKey.Enter)
             {
                 position = typed.Length;
 
                 if (isOutConsole) {
                     ToPosition();
+                    Ln();
                 }
 
-                Ln();
                 var res = typed.ToString();
                 typed.Clear();
 
@@ -42,8 +52,10 @@ class ConsoleReader
 
             if (key.Key == ConsoleKey.C && key.Modifiers == ConsoleModifiers.Control) {
                 position = typed.Length;
-                ToPosition();
-                Ln();
+                if (isOutConsole) {
+                    ToPosition();
+                    Ln();
+                }
                 throw new CtrlCException();
             }
 
@@ -81,18 +93,29 @@ class ConsoleReader
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    var new_pos = position + Console.BufferWidth;
-                    if (new_pos <= typed.Length) {
-                        position = new_pos;
-                        Term.Down();
+                    if (!isOutConsole) {
+                        break;
                     }
+
+                    var newPos = position + lastWidth;
+                    if (newPos > typed.Length) {
+                        goto case ConsoleKey.End;
+                    }
+                    position = newPos;
+                    Term.Down();
                     break;
                 case ConsoleKey.UpArrow:
-                    var new_pos2 = position - Console.BufferWidth;
-                    if (new_pos2 >= 0) {
-                        position = new_pos2;
-                        Term.Up();
+                    if (!isOutConsole) {
+                        break;
                     }
+
+                    var newPos2 = position - lastWidth;
+                    if (newPos2 < 0) {
+                        goto case ConsoleKey.Home;
+                    }
+
+                    position = newPos2;
+                    Term.Up();
                     break;
                 case ConsoleKey.End:
                     position = typed.Length;
@@ -100,14 +123,19 @@ class ConsoleReader
                     break;
                 case ConsoleKey.Home:
                     position = 0;
-                    Term.Restore();
+                    if (isOutConsole) {
+                        Term.Restore();
+                    }
                     break;
                 default:
                     if (!char.IsControl(key.KeyChar))
                     {
                         typed.Insert(position, key.KeyChar);
                         ++position;
-                        PrintFromPosition();
+                        if (isOutConsole) {
+                            Console.Write(key.KeyChar);
+                            PrintFromPosition();
+                        }
                     }
                     break;
             }
@@ -158,7 +186,7 @@ class ConsoleReader
         }
 
         if (Console.CursorLeft == 0) {
-            Console.Write(Term.upEnd, 1);
+            Term.Form(Term.upStart, 1, Term.right, lastWidth - 1);
         } else {
             Term.Left();
         }
@@ -169,7 +197,7 @@ class ConsoleReader
             return;
         }
 
-        if (Console.CursorLeft == Console.BufferWidth - 1) {
+        if (Console.CursorLeft == lastWidth - 1) {
             Term.Form(Term.downStart, 1);
         } else {
             Term.Right();
@@ -191,7 +219,7 @@ class ConsoleReader
         }
 
         Term.Restore();
-        var width = Console.BufferWidth;
+        var width = lastWidth;
         var right = position % width;
         var down = position / width;
         if (right != 0) {
@@ -207,6 +235,14 @@ class ConsoleReader
             Console.Write("\r\n");
         } else {
             Console.WriteLine();
+        }
+    }
+
+    internal void Clear()
+    {
+        if (isOutConsole) {
+            Term.Form(Term.erase, "\x1b[3J", Term.home, Term.save, typed);
+            ToPosition();
         }
     }
 }
