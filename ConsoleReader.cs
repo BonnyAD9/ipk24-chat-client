@@ -9,10 +9,22 @@ class ConsoleReader
     private bool isErrConsole = !Console.IsErrorRedirected;
     private bool isInConsole = !Console.IsInputRedirected;
     private int lastWidth = 0;
+    private string prompt = "";
+    public string Prompt
+    {
+        get => prompt;
+        set
+        {
+            prompt = value;
+            Reprint();
+        }
+    }
+    private int TermPos => position + Prompt.Length;
 
     public void Init() {
         if (isOutConsole) {
             Term.Save();
+            lastWidth = Console.BufferWidth;
         }
     }
 
@@ -22,8 +34,7 @@ class ConsoleReader
             var newWidth = Console.BufferWidth;
             if (newWidth != lastWidth) {
                 lastWidth = newWidth;
-                Term.Form(Term.restore, Term.eraseFromCursor, typed);
-                ToPosition();
+                Reprint();
             }
         }
 
@@ -47,6 +58,7 @@ class ConsoleReader
                 }
 
                 position = 0;
+                Reprint();
                 return res;
             }
 
@@ -133,7 +145,11 @@ class ConsoleReader
                         typed.Insert(position, key.KeyChar);
                         ++position;
                         if (isOutConsole) {
+                            bool isEnd = Console.CursorLeft == lastWidth - 1;
                             Console.Write(key.KeyChar);
+                            if (isEnd) {
+                                Ln();
+                            }
                             PrintFromPosition();
                         }
                     }
@@ -156,6 +172,7 @@ class ConsoleReader
             str,
             "\n\r",
             Term.save,
+            Prompt,
             typed
         );
         ToPosition();
@@ -175,6 +192,7 @@ class ConsoleReader
         Term.Form(
             "\n\r",
             Term.save,
+            Prompt,
             typed
         );
         ToPosition();
@@ -220,8 +238,8 @@ class ConsoleReader
 
         Term.Restore();
         var width = lastWidth;
-        var right = position % width;
-        var down = position / width;
+        var right = TermPos % width;
+        var down = TermPos / width;
         if (right != 0) {
             Term.Right(right);
         }
@@ -241,8 +259,17 @@ class ConsoleReader
     internal void Clear()
     {
         if (isOutConsole) {
-            Term.Form(Term.erase, "\x1b[3J", Term.home, Term.save, typed);
+            Term.Form(Term.erase, "\x1b[3J", Term.home, Term.save, Prompt, typed);
             ToPosition();
         }
+    }
+
+    private void Reprint() {
+        if (!isOutConsole) {
+            return;
+        }
+
+        Term.Form(Term.restore, Term.eraseFromCursor, Prompt, typed);
+        ToPosition();
     }
 }

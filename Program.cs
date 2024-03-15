@@ -34,6 +34,10 @@ static class Program
 
         reader.Init();
 
+        if (nonStandard) {
+            reader.Prompt = "?: ";
+        }
+
         while (true)
         {
             string? line;
@@ -132,6 +136,9 @@ static class Program
     static void RunRename(ReadOnlySpan<char> cmd)
     {
         client.DisplayName = cmd.ToString();
+        if (nonStandard) {
+            reader.Prompt = $"{client.DisplayName}: ";
+        }
     }
 
     static void RunJoin(ReadOnlySpan<char> cmd)
@@ -164,6 +171,10 @@ static class Program
         var name = cmd[(idx + 1)..];
 
         client.Authorize(username, secret, name.ToString());
+
+        if (nonStandard) {
+            reader.Prompt = $"{client.DisplayName}: ";
+        }
     }
 
     static void Receive()
