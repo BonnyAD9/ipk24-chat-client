@@ -20,6 +20,7 @@ class ConsoleReader
         }
     }
     private int TermPos => position + Prompt.Length;
+    private int TermLeft => TermPos % lastWidth;
 
     public void Init() {
         if (isOutConsole) {
@@ -94,14 +95,14 @@ class ConsoleReader
                     break;
                 case ConsoleKey.LeftArrow:
                     if (position != 0) {
-                        --position;
                         MoveLeft();
+                        --position;
                     }
                     break;
                 case ConsoleKey.RightArrow:
                     if (position != typed.Length) {
-                        ++position;
                         MoveRight();
+                        ++position;
                     }
                     break;
                 case ConsoleKey.DownArrow:
@@ -145,7 +146,7 @@ class ConsoleReader
                         typed.Insert(position, key.KeyChar);
                         ++position;
                         if (isOutConsole) {
-                            bool isEnd = TermPos % lastWidth == 0 && TermPos != 0;
+                            bool isEnd = TermLeft == 0 && TermPos != 0;
                             Console.Write(key.KeyChar);
                             if (isEnd) {
                                 Ln();
@@ -203,7 +204,7 @@ class ConsoleReader
             return;
         }
 
-        if (Console.CursorLeft == 0) {
+        if (TermLeft == 0) {
             Term.Form(Term.upStart, 1, Term.right, lastWidth - 1);
         } else {
             Term.Left();
@@ -215,7 +216,7 @@ class ConsoleReader
             return;
         }
 
-        if (Console.CursorLeft == lastWidth - 1) {
+        if (TermLeft == lastWidth - 1) {
             Term.Form(Term.downStart, 1);
         } else {
             Term.Right();
