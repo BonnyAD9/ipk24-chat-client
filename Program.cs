@@ -51,7 +51,6 @@ static class Program
             catch (Exception ex)
             {
                 reader.EWriteLine($"ERROR: {ex.Message}");
-                throw;
             }
 
             Thread.Sleep(sleepTime);

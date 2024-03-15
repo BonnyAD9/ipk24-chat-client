@@ -166,7 +166,7 @@ public class ChatClient : IChatClient
         var stream = tcpClient.GetStream();
         ArrayBufferWriter<byte> writer = new();
 
-        writer.Write("ERROR FROM "u8);
+        writer.Write("ERR FROM "u8);
         Encoding.ASCII.GetBytes(DisplayName, writer);
 
         writer.Write(" IS "u8);
@@ -230,6 +230,8 @@ public class ChatClient : IChatClient
                 return msg;
             case ByeMessage msg:
                 State = ChatClientState.End;
+                return msg;
+            case ReplyMessage msg:
                 return msg;
             default:
                 const string err =
