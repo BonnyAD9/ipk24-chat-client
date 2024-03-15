@@ -8,4 +8,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Bny.Console" Version="1.0.0.1" />
+  </ItemGroup>
+
 </Project>

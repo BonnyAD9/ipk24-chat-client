@@ -8,13 +8,17 @@ static class Program
 
     static readonly TimeSpan sleepTime = TimeSpan.FromMilliseconds(10);
     static ConsoleReader reader = new();
-    static IChatClient client;
+    static IChatClient client = new TcpChatClient();
 
     public static void Main(string[] args)
     {
         TcpChatClient chat = new();
+        Console.Write("Conneting... ");
         chat.Connect("anton5.fit.vutbr.cz", 4567);
         client = chat;
+        Console.TreatControlCAsInput = true;
+        Console.WriteLine("Done!");
+        reader.Init();
 
         while (true)
         {
@@ -36,7 +40,7 @@ static class Program
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"ERROR: {ex.Message}");
+                    reader.EWriteLine($"ERROR: {ex.Message}");
                 }
             }
 
@@ -46,7 +50,8 @@ static class Program
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"ERROR: {ex.Message}");
+                reader.EWriteLine($"ERROR: {ex.Message}");
+                throw;
             }
 
             Thread.Sleep(sleepTime);
@@ -58,7 +63,7 @@ static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"ERROR: {ex.Message}");
+            reader.EWriteLine($"ERROR: {ex.Message}");
         }
     }
 
@@ -67,6 +72,7 @@ static class Program
         if (!c.StartsWith('/'))
         {
             client.Send(c);
+            return;
         }
 
         var cmd = c.AsSpan()[1..];
@@ -100,7 +106,7 @@ static class Program
 
     static void RunHelp()
     {
-        Console.WriteLine("Help:");
+        reader.WriteLine("Help:");
     }
 
     static void RunRename(ReadOnlySpan<char> cmd)
@@ -144,19 +150,19 @@ static class Program
     {
         switch (client.Receive()) {
             case ErrMessage msg:
-                Console.Error.WriteLine(
+                reader.EWriteLine(
                     $"ERR FROM {msg.DisplayName}: {msg.Content}"
                 );
                 break;
             case ReplyMessage msg:
                 if (msg.Ok) {
-                    Console.Error.WriteLine($"Success: {msg.Content}");
+                    reader.EWriteLine($"Success: {msg.Content}");
                 } else {
-                    Console.Error.WriteLine($"Failure: {msg.Content}");
+                    reader.EWriteLine($"Failure: {msg.Content}");
                 }
                 break;
             case MsgMessage msg:
-                Console.WriteLine($"{msg.Sender}: {msg.Content}");
+                reader.WriteLine($"{msg.Sender}: {msg.Content}");
                 break;
         }
     }

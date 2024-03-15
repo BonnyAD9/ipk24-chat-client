@@ -35,7 +35,7 @@ class MessageParser
 
         var msg = Encoding.ASCII.GetString(readed.WrittenSpan).AsSpan();
         readed.Clear();
-        if (msg.StartsWith("ERROR "))
+        if (msg.StartsWith("ERR "))
         {
             return ParseErr(msg);
         }
@@ -52,7 +52,7 @@ class MessageParser
             return ParseBye(msg);
         }
 
-        throw new InvalidDataException("Received unknown message type");
+        throw new InvalidDataException($"Received unknown message type ('{msg}')");
     }
 
     private bool ReadMsg(NetworkStream s)
@@ -67,11 +67,11 @@ class MessageParser
     }
 
     private bool IsWholeMessage
-        => readed.WrittenSpan[^2..].SequenceEqual("\r\n"u8);
+        => readed.WrittenSpan.Length >= 2 && readed.WrittenSpan[^2..].SequenceEqual("\r\n"u8);
 
     private ErrMessage ParseErr(ReadOnlySpan<char> msg)
     {
-        msg = msg["ERROR ".Length..];
+        msg = msg["ERR ".Length..];
 
         var name = ParseFromName(ref msg);
         var content = ParseIsContent(msg);

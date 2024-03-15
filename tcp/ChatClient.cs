@@ -50,7 +50,7 @@ public class ChatClient : IChatClient
 
         if (displayName is not null)
         {
-            DisplayName = DisplayName;
+            DisplayName = displayName;
         }
 
         if (State != ChatClientState.Started
@@ -69,20 +69,21 @@ public class ChatClient : IChatClient
         var stream = tcpClient.GetStream();
         ArrayBufferWriter<byte> writer = new();
 
-        stream.Write("AUTH "u8);
-
+        writer.Write("AUTH "u8);
         Encoding.ASCII.GetBytes(username, writer);
-        stream.Write(writer.WrittenSpan);
 
-        stream.Write(" USING "u8);
+        writer.Write(" AS "u8);
+        Encoding.ASCII.GetBytes(DisplayName, writer);
 
-        writer.Clear();
+        writer.Write(" USING "u8);
         Encoding.ASCII.GetBytes(secret, writer);
+
+        writer.Write("\r\n"u8);
+
         stream.Write(writer.WrittenSpan);
-
-        stream.Write("\r\n"u8);
-
         stream.Flush();
+
+        State = ChatClientState.Authorized;
     }
 
     public void Bye()
@@ -120,18 +121,15 @@ public class ChatClient : IChatClient
         var stream = tcpClient.GetStream();
         ArrayBufferWriter<byte> writer = new();
 
-        stream.Write("JOIN "u8);
-
+        writer.Write("JOIN "u8);
         Encoding.ASCII.GetBytes(channelId, writer);
-        stream.Write(writer.WrittenSpan);
 
-        stream.Write(" AS "u8);
-
-        writer.Clear();
+        writer.Write(" AS "u8);
         Encoding.ASCII.GetBytes(DisplayName, writer);
-        stream.Write(writer.WrittenSpan);
 
-        stream.Write("\n\r"u8);
+        writer.Write("\r\n"u8);
+
+        stream.Write(writer.WrittenSpan);
         stream.Flush();
     }
 
@@ -149,17 +147,15 @@ public class ChatClient : IChatClient
         var stream = tcpClient.GetStream();
         ArrayBufferWriter<byte> writer = new();
 
-        stream.Write("MSG FROM "u8);
-
+        writer.Write("MSG FROM "u8);
         Encoding.ASCII.GetBytes(DisplayName, writer);
-        stream.Write(writer.WrittenSpan);
 
-        stream.Write(" IS "u8);
-
-        writer.Clear();
+        writer.Write(" IS "u8);
         Encoding.ASCII.GetBytes(message, writer);
-        stream.Write(writer.WrittenSpan);
 
+        writer.Write("\r\n"u8);
+
+        stream.Write(writer.WrittenSpan);
         stream.Flush();
     }
 
@@ -170,18 +166,16 @@ public class ChatClient : IChatClient
         var stream = tcpClient.GetStream();
         ArrayBufferWriter<byte> writer = new();
 
-        stream.Write("ERROR FROM "u8);
-
+        writer.Write("ERROR FROM "u8);
         Encoding.ASCII.GetBytes(DisplayName, writer);
-        stream.Write(writer.WrittenSpan);
 
-        stream.Write(" IS "u8);
-
-        writer.Clear();
+        writer.Write(" IS "u8);
         Encoding.ASCII.GetBytes(msg, writer);
-        stream.Write(writer.WrittenSpan);
 
-        stream.Write("\r\n"u8);
+        writer.Write("\r\n"u8);
+
+        stream.Write(writer.WrittenSpan);
+        stream.Flush();
 
         State = ChatClientState.Error;
 
@@ -273,7 +267,7 @@ public class ChatClient : IChatClient
         try {
             return parser.Parse(tcpClient.GetStream());
         } catch (InvalidDataException ex) {
-            var msg = "Failed to parse message: " + ex.Message;
+            var msg = "Failed to parse message: ";// + ex.Message;
             Err(msg);
             throw new InvalidDataException(msg, ex);
         }
