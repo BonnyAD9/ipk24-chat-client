@@ -145,7 +145,7 @@ class ConsoleReader
                         typed.Insert(position, key.KeyChar);
                         ++position;
                         if (isOutConsole) {
-                            bool isEnd = Console.CursorLeft == lastWidth - 1;
+                            bool isEnd = TermPos % lastWidth == 0 && TermPos != 0;
                             Console.Write(key.KeyChar);
                             if (isEnd) {
                                 Ln();
