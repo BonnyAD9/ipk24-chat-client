@@ -279,7 +279,7 @@ public class ChatClient : IChatClient
         => Validate(
             username,
             20,
-            c => c == '-' || char.IsAsciiLetterOrDigit(c),
+            c => c is '-' or '.' or >= 'A' and <= 'z' or >= '0' and <= '9',
             "username",
             "ascii leter, digit or '-'"
         );
@@ -288,7 +288,7 @@ public class ChatClient : IChatClient
         => Validate(
             channel,
             20,
-            c => c == '-' || char.IsAsciiLetterOrDigit(c),
+            c => c is '-' or '.' or >= 'A' and <= 'z' or >= '0' and <= '9',
             "channel id",
             "ascii leter, digit or '-'"
         );
@@ -296,7 +296,7 @@ public class ChatClient : IChatClient
     private static void ValidateSecret(ReadOnlySpan<char> secret) => Validate(
         secret,
         128,
-        c => c == '-' || char.IsAsciiLetterOrDigit(c),
+        c => c is '-' or '.' or >= 'A' and <= 'z' or >= '0' and <= '9',
         "channel id",
         "ascii leter, digit or '-'"
     );
