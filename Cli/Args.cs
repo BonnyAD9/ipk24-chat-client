@@ -66,7 +66,10 @@ class Args
                     break;
                 case "-e" or "--extend" or "--non-standard":
                     EnableNonStandardFeatures = true;
+                    args = args[1..];
                     break;
+                default:
+                    throw new ArgumentException($"Unknown argument {args[0]}");
             }
         }
     }
