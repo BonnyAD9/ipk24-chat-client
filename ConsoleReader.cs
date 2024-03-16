@@ -3,11 +3,11 @@ using Bny.Console;
 
 class ConsoleReader
 {
-    private StringBuilder typed = new();
+    private readonly StringBuilder typed = new();
     private int position = 0;
-    private bool isOutConsole = !Console.IsOutputRedirected;
-    private bool isErrConsole = !Console.IsErrorRedirected;
-    private bool isInConsole = !Console.IsInputRedirected;
+    private readonly bool isOutConsole = !Console.IsOutputRedirected;
+    private readonly bool isErrConsole = !Console.IsErrorRedirected;
+    private readonly bool isInConsole = !Console.IsInputRedirected;
     private int lastWidth = 0;
     private string prompt = "";
     public string Prompt
@@ -19,8 +19,9 @@ class ConsoleReader
             Reprint();
         }
     }
-    private int TermPos => position + Prompt.Length;
+    private int TermPos => position + PromptLength;
     private int TermLeft => TermPos % lastWidth;
+    public int PromptLength { get; set; }
 
     public void Init() {
         if (isOutConsole) {
@@ -137,7 +138,7 @@ class ConsoleReader
                 case ConsoleKey.Home:
                     position = 0;
                     if (isOutConsole) {
-                        Term.Restore();
+                        ToPosition();
                     }
                     break;
                 default:
