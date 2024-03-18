@@ -5,14 +5,6 @@ using System.Text;
 
 namespace IpkChat2024Client.Tcp;
 
-record class ErrMessage(string Content, string DisplayName);
-
-record class ReplyMessage(bool Ok, string Content);
-
-record class MsgMessage(string Sender, string Content);
-
-record class ByeMessage;
-
 class MessageParser
 {
     private ArrayBufferWriter<byte> readed = new();
@@ -99,7 +91,7 @@ class MessageParser
             throw new InvalidDataException("Invalid reply type.");
         }
 
-        return new(ok, ParseIsContent(msg).ToString());
+        return new(ok, ParseIsContent(msg).ToString(), 0);
     }
 
     private MsgMessage ParseMsg(ReadOnlySpan<char> msg)
