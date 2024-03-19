@@ -1,3 +1,5 @@
+using System.Data;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -8,6 +10,12 @@ class IpkUdpClient
     private readonly UdpClient client = new();
     private ushort idCounter = 0;
     private List<SentMessage> sent = [];
+    public int MaxParalel { get; set; }
+    private Queue<SentMessage> sendQueue = [];
+    private Queue<object> recvQueue = [];
+    private bool firstMsg = true;
+    private ushort recvId;
+    private List<(ushort id, object msg)> received;
 
     public void Connect(string address, ushort port)
     {
@@ -97,8 +105,185 @@ class IpkUdpClient
 
     private void Send(byte[] msg, int len)
     {
-        client.Send(msg.AsSpan(..len));
-        sent.Add(new(idCounter, msg, len));
+        sendQueue.Enqueue(new(idCounter, msg, len));
         ++idCounter;
+    }
+
+    public void Update()
+    {
+        Recv();
+        Send();
+    }
+
+    private void Recv()
+    {
+        while (client.Available != 0)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Any, 0);
+            var data = client.Receive(ref endpoint);
+            int i;
+            var (id, m) = ParseMsg(data);
+
+            switch (m)
+            {
+                case ConfirmMessage msg:
+                    i = sent.FindIndex(p => p.Id == msg.Id);
+                    if (i != -1)
+                    {
+                        sent.RemoveAt(i);
+                    }
+                    break;
+                case ReplyMessage msg:
+                    i = sent.FindIndex(p => p.Id == msg.RefId);
+                    if (i != -1)
+                    {
+                        sent.RemoveAt(i);
+                    }
+                    received.Add((id, msg));
+                    break;
+                default:
+                    received.Add((id, m));
+                    break;
+            }
+        }
+
+        var cont = true;
+        while (cont)
+        {
+            cont = false;
+            for (int i = 0; i < received.Count; ++i)
+            {
+                if (received[i].id == recvId || firstMsg)
+                {
+                    recvQueue.Enqueue(received[i].msg);
+                    received.RemoveAt(i);
+                    cont = true;
+                    firstMsg = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    private void Send()
+    {
+        while (sent.Count <= MaxParalel)
+        {
+            var msg = sendQueue.Dequeue();
+            client.Send(msg.Msg.AsSpan(..msg.Length));
+            msg.Time = DateTime.Now;
+            sent.Add(msg);
+        }
+    }
+
+    private (ushort, object) ParseMsg(ReadOnlySpan<byte> data)
+    {
+        if (data.Length < 3) {
+            throw new ProtocolViolationException(
+                "Received invalid ipk message over udp: Message is too short"
+            );
+        }
+
+        var type = (MessageType)data[0];
+        data = data[1..];
+
+        ushort id = ParseUshort(ref data);
+
+        return (id, type switch
+        {
+            MessageType.Confirm => ParseConfirm(data, id),
+            MessageType.Reply => ParseReply(data, id),
+            MessageType.Msg => ParseMsgMsg(data, id),
+            MessageType.Err => ParseErrMsg(data, id),
+            MessageType.Bye => ParseByeMsg(data, id),
+            _ => throw new DataException(
+                "Ipk over udp received unsupported message type"
+            ),
+        });
+    }
+
+    private ConfirmMessage ParseConfirm(ReadOnlySpan<byte> data, ushort id)
+    {
+        ZeroLen(data);
+        return new ConfirmMessage(id);
+    }
+
+    private ReplyMessage ParseReply(ReadOnlySpan<byte> data, ushort id)
+    {
+        if (data.Length < 4) {
+            throw new ProtocolViolationException(
+                "Invalid reply message length: message is too short"
+            );
+        }
+
+        var success = data[0] switch {
+            0 => false,
+            1 => true,
+            _ => throw new ProtocolViolationException(
+                $"Invalid result code '{data[0]}' in reply message"
+            ),
+        };
+        data = data[1..];
+
+        var refId = ParseUshort(ref data);
+        var content = ParseString(ref data);
+        ZeroLen(data);
+
+        return new ReplyMessage(success, content, refId);
+    }
+
+    private MsgMessage ParseMsgMsg(ReadOnlySpan<byte> data, ushort id)
+    {
+        var (name, content) = Parse2StrMsg(data);
+        return new MsgMessage(name, content);
+    }
+
+    private ErrMessage ParseErrMsg(ReadOnlySpan<byte> data, ushort id)
+    {
+        var (name, content) = Parse2StrMsg(data);
+        return new ErrMessage(content, name);
+    }
+
+    private ByeMessage ParseByeMsg(ReadOnlySpan<byte> data, ushort id)
+    {
+        ZeroLen(data);
+        return new ByeMessage();
+    }
+
+    private (string, string) Parse2StrMsg(ReadOnlySpan<byte> data)
+    {
+        var s1 = ParseString(ref data);
+        var s2 = ParseString(ref data);
+        ZeroLen(data);
+        return (s1, s2);
+    }
+
+    private ushort ParseUshort(ref ReadOnlySpan<byte> data)
+    {
+        var res = (ushort)(data[0] >> 8);
+        res |= data[1];
+        data = data[2..];
+        return res;
+    }
+
+    private string ParseString(ref ReadOnlySpan<byte> data)
+    {
+        var i = data.IndexOf((byte)0);
+        if (i == -1) {
+            throw new ProtocolViolationException("Missing string terminator");
+        }
+        var res = Encoding.ASCII.GetString(data[..i]);
+        data = data[(i + 1)..];
+        return res;
+    }
+
+    private void ZeroLen(ReadOnlySpan<byte> data)
+    {
+        if (data.Length != 0)
+        {
+            throw new ProtocolViolationException(
+                "Received message with more data than expected"
+            );
+        }
     }
 }

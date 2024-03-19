@@ -113,7 +113,7 @@ static class Program
                 break;
             }
 
-            if (line is not null)
+            if (line is not null && line.Length != 0)
             {
                 try
                 {

@@ -32,7 +32,8 @@ class Args
 
     private Args() {}
 
-    private void ParseMethod(ReadOnlySpan<string> args) {
+    private void ParseMethod(ReadOnlySpan<string> args)
+    {
         while (args.Length != 0)
         {
             switch (args[0])
