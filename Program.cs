@@ -37,6 +37,8 @@ static class Program
             nonStandard = true;
         }
 
+        Validators.ExtendChannel = nonStandard;
+
         switch (args.Action)
         {
             case Cli.Action.Help:

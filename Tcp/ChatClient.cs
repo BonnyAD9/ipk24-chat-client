@@ -21,7 +21,7 @@ public class ChatClient : IChatClient
     {
         get => displayName ?? "name";
         set {
-            ValidateDisplayName(value);
+            Validators.DisplayName(value);
             displayName = value;
         }
     }
@@ -44,17 +44,7 @@ public class ChatClient : IChatClient
         string? displayName = null
     )
     {
-        ValidateUsername(username);
-        ValidateSecret(secret);
-
-        if (displayName is not null)
-        {
-            DisplayName = displayName;
-        }
-
-        if (State != ChatClientState.Started
-            && State != ChatClientState.Authorized
-        )
+        if (State != ChatClientState.Started)
         {
             throw new InvalidOperationException(State switch
                 {
@@ -63,6 +53,14 @@ public class ChatClient : IChatClient
                     _ => "Client is already authorized",
                 }
             );
+        }
+
+        Validators.Username(username);
+        Validators.Secret(secret);
+
+        if (displayName is not null)
+        {
+            DisplayName = displayName;
         }
 
         var stream = tcpClient.GetStream();
@@ -82,7 +80,7 @@ public class ChatClient : IChatClient
         stream.Write(writer.WrittenSpan);
         stream.Flush();
 
-        State = ChatClientState.Authorized;
+        State = ChatClientState.Authorizing;
     }
 
     public void Bye()
@@ -104,11 +102,12 @@ public class ChatClient : IChatClient
         stream.Flush();
 
         State = ChatClientState.End;
+        tcpClient.Close();
     }
 
     public void Join(ReadOnlySpan<char> channelId)
     {
-        ValidateChannel(channelId);
+        Validators.Channel(channelId);
 
         if (State != ChatClientState.Open)
         {
@@ -134,7 +133,7 @@ public class ChatClient : IChatClient
 
     public void Send(ReadOnlySpan<char> message)
     {
-        ValidateMessage(message);
+        Validators.Message(message);
 
         if (State != ChatClientState.Open)
         {
@@ -160,7 +159,7 @@ public class ChatClient : IChatClient
 
     public void Err(ReadOnlySpan<char> msg)
     {
-        ValidateMessage(msg);
+        Validators.Message(msg);
 
         var stream = tcpClient.GetStream();
         ArrayBufferWriter<byte> writer = new();
@@ -203,7 +202,7 @@ public class ChatClient : IChatClient
                     + "message.";
                 Err(msg);
                 throw new ProtocolViolationException(msg);
-            case ChatClientState.Authorized:
+            case ChatClientState.Authorizing:
                 return ReceiveAuthorize();
             case ChatClientState.Open:
                 return ReceiveOpen();
@@ -250,7 +249,9 @@ public class ChatClient : IChatClient
                 if (msg.Ok)
                 {
                     State = ChatClientState.Open;
+                    return msg;
                 }
+                State = ChatClientState.Started;
                 return msg;
             case ErrMessage msg:
                 Bye();
@@ -271,78 +272,6 @@ public class ChatClient : IChatClient
             var msg = "Failed to parse message: ";// + ex.Message;
             Err(msg);
             throw new InvalidDataException(msg, ex);
-        }
-    }
-
-    private static void ValidateUsername(ReadOnlySpan<char> username)
-        => Validate(
-            username,
-            20,
-            c => c is '-' or '.' or >= 'A' and <= 'z' or >= '0' and <= '9',
-            "username",
-            "ascii leter, digit or '-'"
-        );
-
-    private static void ValidateChannel(ReadOnlySpan<char> channel)
-        => Validate(
-            channel,
-            20,
-            c => c is '-' or '.' or >= 'A' and <= 'z' or >= '0' and <= '9',
-            "channel id",
-            "ascii leter, digit or '-'"
-        );
-
-    private static void ValidateSecret(ReadOnlySpan<char> secret) => Validate(
-        secret,
-        128,
-        c => c is '-' or '.' or >= 'A' and <= 'z' or >= '0' and <= '9',
-        "channel id",
-        "ascii leter, digit or '-'"
-    );
-
-    private static void ValidateDisplayName(ReadOnlySpan<char> displayName)
-        => Validate(
-            displayName,
-            20,
-            c => c >= 0x21 && c <= 0x7E,
-            "display name",
-            "printable ascii characters"
-        );
-
-    private static void ValidateMessage(ReadOnlySpan<char> message)
-        => Validate(
-            message,
-            1400,
-            c => c >= 0x20 && c <= 0x7E,
-            "message",
-            "printable ascii characters"
-        );
-
-    private static void Validate(
-        ReadOnlySpan<char> field,
-        int maxLen,
-        Func<char, bool> allowedChars,
-        string name,
-        string allowedDesc
-    )
-    {
-        if (field.Length == 0) {
-            throw new ArgumentException(
-                $"Too short {name} (must be at least 1 character)."
-            );
-        }
-        if (field.Length > maxLen) {
-            throw new ArgumentException(
-                $"Too long {name} (cannot be more than 20 characters long)."
-            );
-        }
-        foreach (var c in field)
-        {
-            if (!allowedChars(c)) {
-                throw new ArgumentException(
-                    $"Invalid  {name}: It may contain only {allowedDesc}."
-                );
-            }
         }
     }
 }

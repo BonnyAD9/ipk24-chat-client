@@ -15,20 +15,42 @@ class IpkUdpClient
     private Queue<object> recvQueue = [];
     private bool firstMsg = true;
     private ushort recvId;
-    private List<(ushort id, object msg)> received;
+    private List<(ushort id, object msg)> received = [];
+    private IPAddress address = IPAddress.Any;
 
     public void Connect(string address, ushort port)
     {
+        var adr = Dns.GetHostAddresses(address);
+        if (adr.Length != 0)
+        {
+            this.address = adr[0];
+        }
         client.Connect(address, port);
     }
 
-    public void Send(ErrMessage msg) =>
-        Send2StringMsg(MessageType.Err, msg.DisplayName, msg.Content);
+    public void Flush() => Update();
 
-    public void Send(MsgMessage msg) =>
-        Send2StringMsg(MessageType.Msg, msg.Sender, msg.Content);
+    public object? Read()
+    {
+        Update();
+        if (recvQueue.TryDequeue(out object? res)) {
+            return res;
+        }
+        return null;
+    }
 
-    public void Send(ByeMessage msg)
+    public void Close() => client.Close();
+
+    public void SendErr(
+        ReadOnlySpan<char> displayName, ReadOnlySpan<char> content
+    ) => Send2StringMsg(MessageType.Err, displayName, content);
+
+    public void SendMsg(
+        ReadOnlySpan<char> displayName,
+        ReadOnlySpan<char> content
+    ) => Send2StringMsg(MessageType.Msg, displayName, content);
+
+    public void SendBye()
     {
         var arr = new byte[3];
         var buf = arr.AsSpan();
@@ -38,40 +60,47 @@ class IpkUdpClient
 
     private void SendConfirm(ushort id)
     {
-        var arr = new byte[3];
-        Span<byte> buf = arr.AsSpan();
+        Span<byte> buf = stackalloc byte[3];
 
         buf[0] = (byte)MessageType.Confirm;
         buf[1] = (byte)(id >> 8);
         buf[1] = (byte)id;
 
-        Send(arr);
+        client.Send(buf);
     }
 
-    public void Send(AuthMessage msg)
-    {
+    public void SendAuth(
+        ReadOnlySpan<char> username,
+        ReadOnlySpan<char> displayName,
+        ReadOnlySpan<char> secret
+    ) {
         var maxLen = 6
-            + msg.Username.Length
-            + msg.DisplayName.Length
-            + msg.Secret.Length;
+            + username.Length
+            + displayName.Length
+            + secret.Length;
 
         byte[] arr = new byte[maxLen];
         var buf = arr.AsSpan();
 
         SetHeader(MessageType.Auth, ref buf);
 
-        AddString(msg.Username, ref buf);
-        AddString(msg.DisplayName, ref buf);
-        AddString(msg.Secret, ref buf);
+        AddString(username, ref buf);
+        AddString(displayName, ref buf);
+        AddString(secret, ref buf);
 
         SendEx(arr, buf.Length);
     }
 
-    public void Send(JoinMessage msg) =>
-        Send2StringMsg(MessageType.Join, msg.Channel, msg.DisplayName);
+    public void SendJoin(
+        ReadOnlySpan<char> channel,
+        ReadOnlySpan<char> displayName
+    ) => Send2StringMsg(MessageType.Join, channel, displayName);
 
-    private void Send2StringMsg(MessageType type, string s1, string s2)
-    {
+    private void Send2StringMsg(
+        MessageType type,
+        ReadOnlySpan<char> s1,
+        ReadOnlySpan<char> s2
+    ) {
         var maxLen = 5 + s1.Length + s2.Length;
         byte[] arr = new byte[maxLen];
         var buf = arr.AsSpan();
@@ -84,7 +113,7 @@ class IpkUdpClient
         SendEx(arr, buf.Length);
     }
 
-    private void AddString(string str, ref Span<byte> res)
+    private void AddString(ReadOnlySpan<char> str, ref Span<byte> res)
     {
         var i = Encoding.ASCII.GetBytes(str, res);
         res[i] = 0;
@@ -123,6 +152,7 @@ class IpkUdpClient
             var data = client.Receive(ref endpoint);
             int i;
             var (id, m) = ParseMsg(data);
+            SendConfirm(id);
 
             switch (m)
             {

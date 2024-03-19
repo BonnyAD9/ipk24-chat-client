@@ -4,7 +4,7 @@ public enum ChatClientState
 {
     Stopped,
     Started,
-    Authorized,
+    Authorizing,
     Open,
     Error,
     End,
