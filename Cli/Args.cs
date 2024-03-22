@@ -1,6 +1,6 @@
 namespace IpkChat2024Client.Cli;
 
-class Args
+public class Args
 {
     public Action Action { get; private set; } = Action.None;
     public string? Address { get; private set; } = null;

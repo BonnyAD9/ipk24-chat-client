@@ -3,8 +3,7 @@ using System.Diagnostics;
 using Bny.Console;
 using IpkChat2024Client.Cli;
 using IpkChat2024Client.Tcp;
-using TcpChatClient = IpkChat2024Client.Tcp.ChatClient;
-using UdpChatClient = IpkChat2024Client.Udp.ChatClient;
+using IpkChat2024Client.Udp;
 
 namespace IpkChat2024Client;
 
@@ -13,7 +12,7 @@ static class Program
 
     static readonly TimeSpan sleepTime = TimeSpan.FromMilliseconds(10);
     static ConsoleReader reader = new();
-    static IChatClient client = null!;
+    static ChatClient client = null!;
     static bool nonStandard =
         Environment.GetEnvironmentVariable("IS_BONNYAD9") == "YES";
 
@@ -45,70 +44,35 @@ static class Program
             case Cli.Action.Help:
                 return Help(args);
             case Cli.Action.Tcp:
-                try
-                {
-                    PrepareTcp(args);
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine(ex.Message);
-                    return 1;
-                }
-                return RunClient();
+                client = new TcpChatClient();
+                break;
             case Cli.Action.Udp:
-                try
-                {
-                    PrepareUdp(args);
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine(ex.Message);
-                    return 1;
-                }
-                return RunClient();
+                client = new UdpChatClient();
+                break;
             default:
                 throw new UnreachableException("Invalid action");
         }
+
+        try
+        {
+            Prepare(args);
+        }
+        catch (Exception ex)
+        {
+            reader.EWriteLine($"ERROR {ex.Message}");
+            return 1;
+        }
+    
+        return RunClient();
     }
 
-    private static void PrepareUdp(Args args)
+    private static void Prepare(Args args)
     {
-        UdpChatClient chat = new();
-
         if (nonStandard) {
             Console.Write("Conneting... ");
         }
 
-        chat.Connect(args.Address!, args.Port);
-        client = chat;
-
-        if (!Console.IsInputRedirected) {
-            Console.TreatControlCAsInput = true;
-        }
-
-        if (nonStandard) {
-            Term.FormLine(Term.brightGreen, "Done!", Term.reset);
-        }
-
-        reader.Init();
-
-        if (nonStandard) {
-            reader.PromptLength = "?: ".Length;
-            reader.Prompt =
-                $"{Term.brightYellow}?{Term.brightBlack}: {Term.reset}";
-        }
-    }
-
-    private static void PrepareTcp(Args args)
-    {
-        TcpChatClient chat = new();
-
-        if (nonStandard) {
-            Console.Write("Conneting... ");
-        }
-
-        chat.Connect(args.Address!, args.Port);
-        client = chat;
+        client.Connect(args);
 
         if (!Console.IsInputRedirected) {
             Console.TreatControlCAsInput = true;

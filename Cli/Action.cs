@@ -1,6 +1,6 @@
 namespace IpkChat2024Client.Cli;
 
-enum Action
+public enum Action
 {
     None,
     Tcp,
