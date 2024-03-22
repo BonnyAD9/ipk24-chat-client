@@ -37,6 +37,8 @@ static class Program
             nonStandard = true;
         }
 
+        InitANSI();
+
         Validators.ExtendChannel = nonStandard;
 
         switch (args.Action)
@@ -59,35 +61,37 @@ static class Program
         }
         catch (Exception ex)
         {
-            reader.EWriteLine($"ERROR {ex.Message}");
+            reader.EWriteLine($"{r}ERR:{reset} {ex.Message}");
             return 1;
         }
-    
+
         return RunClient();
     }
 
     private static void Prepare(Args args)
     {
-        if (nonStandard) {
+        if (nonStandard)
+        {
             Console.Write("Conneting... ");
         }
 
         client.Connect(args);
 
-        if (!Console.IsInputRedirected) {
+        if (!Console.IsInputRedirected)
+        {
             Console.TreatControlCAsInput = true;
         }
 
-        if (nonStandard) {
-            Term.FormLine(Term.brightGreen, "Done!", Term.reset);
+        if (nonStandard)
+        {
+            Console.WriteLine($"{g}Done!{reset}");
         }
 
         reader.Init();
 
         if (nonStandard) {
             reader.PromptLength = "?: ".Length;
-            reader.Prompt =
-                $"{Term.brightYellow}?{Term.brightBlack}: {Term.reset}";
+            reader.Prompt = $"{y}?{dgr}: {reset}";
         }
     }
 
@@ -107,35 +111,24 @@ static class Program
 
             if (line is not null && line.Length != 0)
             {
-                    RunCommand(line);
                 try
                 {
+                    RunCommand(line);
                 }
                 catch (Exception ex)
                 {
-                    if (nonStandard && !Console.IsErrorRedirected) {
-                        reader.EWriteLine(
-                            $"{Term.brightRed}ERR:{Term.reset} {ex.Message}"
-                        );
-                    } else {
-                        reader.EWriteLine($"ERR: {ex.Message}");
-                    }
+                    reader.EWriteLine($"{r}ERR:{reset} {ex.Message}");
                 }
             }
 
             try
             {
-                Receive();
+                while (Receive())
+                    ;
             }
             catch (Exception ex)
             {
-                if (nonStandard && !Console.IsErrorRedirected) {
-                    reader.EWriteLine(
-                        $"{Term.brightRed}ERR:{Term.reset} {ex.Message}"
-                    );
-                } else {
-                    reader.EWriteLine($"ERR: {ex.Message}");
-                }
+                reader.EWriteLine($"{r}ERR:{reset} {ex.Message}");
             }
 
             Thread.Sleep(sleepTime);
@@ -147,13 +140,7 @@ static class Program
         }
         catch (Exception ex)
         {
-            if (nonStandard && !Console.IsErrorRedirected) {
-                reader.EWriteLine(
-                    $"{Term.brightRed}ERR:{Term.reset} {ex.Message}"
-                );
-            } else {
-                reader.EWriteLine($"ERR: {ex.Message}");
-            }
+            reader.EWriteLine($"{r}ERR:{reset} {ex.Message}");
         }
 
         return 0;
@@ -205,47 +192,24 @@ static class Program
 
     static void RunHelp()
     {
-        var (sign, g, y, i, w, dgr, r) = !Console.IsInputRedirected
-            ? (
-                string.Concat("xstigl00".Select((p, i) => {
-                    return Term.Prepare(
-                        Term.fg, 250 - 10 * i, 50, 170 + 10 * i, p
-                    );
-                })),
-                Term.brightGreen,
-                Term.brightYellow,
-                Term.italic,
-                Term.brightWhite,
-                Term.brightBlack,
-                Term.reset
-            ) : (
-                "xstigl00",
-                "",
-                "",
-                "",
-                "",
-                "",
-                ""
-            );
-
         reader.WriteLine(
             $"""
-            Welcome to help for {i}{g}ip24chat-client{r} commands by {sign}.
+            Welcome to help for {i}{g}ip24chat-client{reset} commands by {sign}.
 
             {g}Commands:
-              {w}/auth <username> <secret> <display name>{r}
+              {w}/auth <username> <secret> <display name>{reset}
                 Authorises to the the server and sets the display name.
 
-              {w}/join <channel id>{r}
+              {w}/join <channel id>{reset}
                 Joins channel on server.
 
-              {w}/rename <display name>{r}
+              {w}/rename <display name>{reset}
                 Changes the display name.
 
-              {w}/help{r}
+              {w}/help{reset}
                 Shows this help.
 
-            To exit press {w}Ctrl+C{r}.
+            To exit press {w}Ctrl+C{reset}.
             """
         );
     }
@@ -255,9 +219,7 @@ static class Program
         client.DisplayName = cmd.ToString();
         if (nonStandard) {
             reader.PromptLength = client.DisplayName.Length + 2;
-            reader.Prompt =
-                $"{Term.brightYellow}{client.DisplayName}{Term.brightBlack}: "
-                    + $"{Term.reset}";
+            reader.Prompt = $"{y}{client.DisplayName}{dgr}: {reset}";
         }
     }
 
@@ -294,127 +256,116 @@ static class Program
 
         if (nonStandard) {
             reader.PromptLength = client.DisplayName.Length + 2;
-            reader.Prompt =
-                $"{Term.brightYellow}{client.DisplayName}{Term.brightBlack}: "
-                    + $"{Term.reset}";
+            reader.Prompt = $"{y}{client.DisplayName}{dgr}: {reset}";
         }
     }
 
-    static void Receive()
+    static bool Receive()
     {
         switch (client.Receive()) {
             case ErrMessage msg:
-                if (nonStandard && !Console.IsErrorRedirected) {
-                    reader.EWriteLine(
-                        $"{Term.brightRed}ERR {Term.reset}FROM "
-                            + $"{Term.brightMagenta}{msg.DisplayName}"
-                            + $"{Term.brightBlack}: {Term.reset}{msg.Content}"
-                    );
-                } else {
-                    reader.EWriteLine(
-                        $"ERR FROM {msg.DisplayName}: {msg.Content}"
-                    );
-                }
-                break;
+                reader.EWriteLine(
+                    $"{r}ERR {reset}FROM {m}{msg.DisplayName}{dgr}: {reset}"
+                        + msg.Content
+                );
+                return true;
             case ReplyMessage msg:
-                if (msg.Ok) {
-                    if (nonStandard && !Console.IsErrorRedirected) {
-                        reader.EWriteLine(
-                            $"{Term.brightGreen}Success: {Term.reset}"
-                                + $"{msg.Content}"
-                        );
-                    } else {
-                        reader.EWriteLine($"Success: {msg.Content}");
-                    }
-                } else {
-                    if (nonStandard && !Console.IsErrorRedirected) {
-                        reader.EWriteLine(
-                            $"{Term.brightRed}Failure: {Term.reset}"
-                                + $"{msg.Content}"
-                        );
-                    } else {
-                        reader.EWriteLine($"Failure: {msg.Content}");
-                    }
+                if (msg.Ok)
+                {
+                    reader.EWriteLine($"{g}Success: {reset}{msg.Content}");
                 }
-                break;
+                else
+                {
+                    reader.EWriteLine($"{r}Failure: {reset}{msg.Content}");
+                }
+                return true;
             case MsgMessage msg:
-                if (nonStandard && !Console.IsErrorRedirected) {
-                    reader.WriteLine(
-                        $"{Term.brightMagenta}{msg.Sender}{Term.brightBlack}: "
-                            + $"{Term.brightWhite}{msg.Content}{Term.reset}"
-                    );
-                } else {
-                    reader.WriteLine($"{msg.Sender}: {msg.Content}");
+                reader.WriteLine(
+                    $"{m}{msg.Sender}{dgr}: {w}{msg.Content}{reset}"
+                );
+                return true;
+            case ByeMessage:
+                if (nonStandard) {
+                    reader.WriteLine($"{dgr}Server said bye{reset}");
                 }
-                break;
+                return true;
         }
+        return false;
     }
 
     private static int Help(Args args)
     {
-        var (sign, g, y, i, w, dgr, r) = !Console.IsInputRedirected
-            ? (
-                string.Concat("xstigl00".Select((p, i) => {
-                    return Term.Prepare(
-                        Term.fg, 250 - 10 * i, 50, 170 + 10 * i, p
-                    );
-                })),
-                Term.brightGreen,
-                Term.brightYellow,
-                Term.italic,
-                Term.brightWhite,
-                Term.brightBlack,
-                Term.reset
-            ) : (
-                "xstigl00",
-                "",
-                "",
-                "",
-                "",
-                "",
-                ""
-            );
-
         Console.WriteLine(
             $"""
-            Welcome to help for {i}{g}ip24chat-client{r} by {sign}.
+            Welcome to help for {i}{g}ip24chat-client{reset} by {sign}.
 
             {g}Usage:
-              {w}ipk24chat-cleint -h{r}
+              {w}ipk24chat-cleint -h{reset}
                 Shows this help.
 
               {w}ipk24chat-client -t <protocol> -s <server address>
-                                  {dgr}[flags]{r}
+                                  {dgr}[flags]{reset}
                 Connects to the server address with the protocol.
 
             {g}Flags:
-              {y}-t  --protocol {w}(tcp | udp){r}
+              {y}-t  --protocol {w}(tcp | udp){reset}
                 Selects the protocol.
 
-              {y}-s  --address  --server {w}<server address>{r}
+              {y}-s  --address  --server {w}<server address>{reset}
                 Selects the chat server to connect to.
 
-              {y}-p  --port {w}<port>{r}
+              {y}-p  --port {w}<port>{reset}
                 Selects the port to use when connecting to server. Default is
                 4567
 
-              {y}-d  --udp-timeout {w}<timeout>{r}
+              {y}-d  --udp-timeout {w}<timeout>{reset}
                 Sets the udp confirmation timeout in milliseconds. Has no
                 effect when using tcp. Default is 250.
 
-              {y}-r  --udp-retransmitions {w}<count>{r}
+              {y}-r  --udp-retransmitions {w}<count>{reset}
                 Sets the max number of retransimitions when using udp. Has no
                 effect when using tcp.
 
-              {y}-h  -?  --help{r}
+              {y}-h  -?  --help{reset}
                 Prints this help.
 
-              {y}-e  --extend  --non-standard{r}
+              {y}-e  --extend  --non-standard{reset}
                 Enable non-standard features that would otherwise interfere
                 with the specification.
             """
         );
 
         return 0;
+    }
+
+    // ANSI stuff
+
+    static string sign = "";
+    static string r = "";
+    static string g = "";
+    static string y = "";
+    static string m = "";
+    static string w = "";
+    static string dgr = "";
+    static string reset = "";
+    static string i = "";
+
+    static void InitANSI()
+    {
+        if (!nonStandard || Console.IsOutputRedirected)
+        {
+            return;
+        }
+        sign = string.Concat("xstigl00".Select((p, i) =>
+            Term.Prepare(Term.fg, 250 - 10 * i, 50, 170 + 10 * i, p)
+        ));
+        r = Term.brightRed;
+        g = Term.brightGreen;
+        y = Term.brightYellow;
+        m = Term.brightMagenta;
+        w = Term.brightWhite;
+        dgr = Term.brightBlack;
+        reset = Term.reset;
+        i = Term.italic;
     }
 }
