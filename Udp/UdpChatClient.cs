@@ -1,7 +1,5 @@
-using System.Data;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using IpkChat2024Client.Cli;
 
 namespace IpkChat2024Client.Udp;

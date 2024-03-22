@@ -1,4 +1,3 @@
-using System.Net;
 using IpkChat2024Client.Cli;
 using IpkChat2024Client.Tcp;
 

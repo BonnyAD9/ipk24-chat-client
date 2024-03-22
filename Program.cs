@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.Design;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Bny.Console;
 using IpkChat2024Client.Cli;
 using IpkChat2024Client.Tcp;
