@@ -17,6 +17,9 @@ class IpkUdpClient
     private ushort recvId;
     private List<(ushort id, object msg)> received = [];
     private IPAddress address = IPAddress.Any;
+    private TimeSpan timeout = TimeSpan.FromMilliseconds(250);
+    private int maxResend = 4;
+    private IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 4567);
 
     public void Connect(string address, ushort port)
     {
@@ -25,7 +28,8 @@ class IpkUdpClient
         {
             this.address = adr[0];
         }
-        client.Connect(address, port);
+        endPoint.Address = Dns.GetHostEntry(address).AddressList.First(p => p.AddressFamily == AddressFamily.InterNetwork);
+        endPoint.Port = port;
     }
 
     public void Flush() => Update();
@@ -64,9 +68,9 @@ class IpkUdpClient
 
         buf[0] = (byte)MessageType.Confirm;
         buf[1] = (byte)(id >> 8);
-        buf[1] = (byte)id;
+        buf[2] = (byte)id;
 
-        client.Send(buf);
+        client.Send(buf, endPoint);
     }
 
     public void SendAuth(
@@ -148,11 +152,17 @@ class IpkUdpClient
     {
         while (client.Available != 0)
         {
-            var endpoint = new IPEndPoint(IPAddress.Any, 0);
-            var data = client.Receive(ref endpoint);
+            if (firstMsg) {
+                endPoint.Port = 0;
+            }
+            var data = client.Receive(ref endPoint);
             int i;
             var (id, m) = ParseMsg(data);
+            //Console.WriteLine(id);
             SendConfirm(id);
+            // swap the endianness of the ID because there is a bug in the reference server
+            id = (ushort)((id << 8) | (id >> 8));
+            Console.WriteLine(id);
 
             switch (m)
             {
@@ -185,6 +195,10 @@ class IpkUdpClient
             {
                 if (received[i].id == recvId || firstMsg)
                 {
+                    if (firstMsg) {
+                        recvId = received[i].id;
+                    }
+                    ++recvId;
                     recvQueue.Enqueue(received[i].msg);
                     received.RemoveAt(i);
                     cont = true;
@@ -197,10 +211,27 @@ class IpkUdpClient
 
     private void Send()
     {
-        while (sent.Count <= MaxParalel)
+        for (int i = 0; i < sent.Count; ++i)
+        {
+            if (DateTime.Now - sent[i].Time > timeout)
+            {
+                sent[i] = sent[i] with { Resend = sent[i].Resend + 1 };
+                if (sent[i].Resend > maxResend)
+                {
+                    sent.RemoveAt(i);
+                    --i;
+                    throw new TimeoutException(
+                        "Failed to send udp message: didn't receive response"
+                    );
+                } else {
+                    client.Send(sent[i].Msg.AsSpan(..sent[i].Length), endPoint);
+                }
+            }
+        }
+        while (sent.Count <= MaxParalel && sendQueue.Count > 0)
         {
             var msg = sendQueue.Dequeue();
-            client.Send(msg.Msg.AsSpan(..msg.Length));
+            client.Send(msg.Msg.AsSpan(..msg.Length), endPoint);
             msg.Time = DateTime.Now;
             sent.Add(msg);
         }
@@ -290,7 +321,7 @@ class IpkUdpClient
 
     private ushort ParseUshort(ref ReadOnlySpan<byte> data)
     {
-        var res = (ushort)(data[0] >> 8);
+        var res = (ushort)(data[0] << 8);
         res |= data[1];
         data = data[2..];
         return res;

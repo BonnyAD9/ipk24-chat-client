@@ -4,6 +4,7 @@ using Bny.Console;
 using IpkChat2024Client.Cli;
 using IpkChat2024Client.Tcp;
 using TcpChatClient = IpkChat2024Client.Tcp.ChatClient;
+using UdpChatClient = IpkChat2024Client.Udp.ChatClient;
 
 namespace IpkChat2024Client;
 
@@ -51,6 +52,7 @@ static class Program
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine(ex.Message);
+                    return 1;
                 }
                 return RunClient();
             case Cli.Action.Udp:
@@ -61,6 +63,7 @@ static class Program
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine(ex.Message);
+                    return 1;
                 }
                 return RunClient();
             default:
@@ -70,7 +73,30 @@ static class Program
 
     private static void PrepareUdp(Args args)
     {
-        throw new NotImplementedException("Udp is not implemented yet");
+        UdpChatClient chat = new();
+
+        if (nonStandard) {
+            Console.Write("Conneting... ");
+        }
+
+        chat.Connect(args.Address!, args.Port);
+        client = chat;
+
+        if (!Console.IsInputRedirected) {
+            Console.TreatControlCAsInput = true;
+        }
+
+        if (nonStandard) {
+            Term.FormLine(Term.brightGreen, "Done!", Term.reset);
+        }
+
+        reader.Init();
+
+        if (nonStandard) {
+            reader.PromptLength = "?: ".Length;
+            reader.Prompt =
+                $"{Term.brightYellow}?{Term.brightBlack}: {Term.reset}";
+        }
     }
 
     private static void PrepareTcp(Args args)
@@ -117,9 +143,9 @@ static class Program
 
             if (line is not null && line.Length != 0)
             {
+                    RunCommand(line);
                 try
                 {
-                    RunCommand(line);
                 }
                 catch (Exception ex)
                 {
