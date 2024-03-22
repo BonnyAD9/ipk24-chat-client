@@ -3,8 +3,19 @@ using System.Text;
 
 namespace IpkChat2024Client.Udp;
 
+/// <summary>
+/// Used to parse binary UDP messages for the IPK protocol
+/// </summary>
 static class MessageParser
 {
+    /// <summary>
+    /// Parse the given message.
+    /// </summary>
+    /// <param name="data">Message to parse.</param>
+    /// <returns>Tuple of id of the message and the message itself</returns>
+    /// <exception cref="ProtocolViolationException">
+    /// For invalid data.
+    /// </exception>
     public static (ushort id, object msg) Parse(ReadOnlySpan<byte> data)
     {
         if (data.Length < 3)
@@ -14,11 +25,13 @@ static class MessageParser
             );
         }
 
+        // Parse the common data
         var type = (MessageType)data[0];
         data = data[1..];
 
         ushort id = ParseUshort(ref data);
 
+        // Parse based on the type of the message
         return (
             id,
             type switch
@@ -83,6 +96,11 @@ static class MessageParser
         return new ByeMessage();
     }
 
+    /// <summary>
+    /// Parses message that consists of two strings.
+    /// </summary>
+    /// <param name="data">Data to parse</param>
+    /// <returns>The two strings of the message</returns>
     private static (string, string) Parse2StrMsg(ReadOnlySpan<byte> data)
     {
         var s1 = ParseString(ref data);
@@ -102,6 +120,11 @@ static class MessageParser
         return res;
     }
 
+    /// <summary>
+    /// Reads ushort from data in BE byte order.
+    /// </summary>
+    /// <param name="data">Data to read from</param>
+    /// <returns>Readed ushort</returns>
     private static ushort ParseUshort(ref ReadOnlySpan<byte> data)
     {
         var res = (ushort)(data[0] << 8);
@@ -110,6 +133,13 @@ static class MessageParser
         return res;
     }
 
+    /// <summary>
+    /// Throws when data length is not 0.
+    /// </summary>
+    /// <param name="data">Data to check.</param>
+    /// <exception cref="ProtocolViolationException">
+    /// For non 0 data length
+    /// </exception>
     private static void ZeroLen(ReadOnlySpan<byte> data)
     {
         if (data.Length != 0)

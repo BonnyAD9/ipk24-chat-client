@@ -8,19 +8,44 @@ public class UdpChatClient : ChatClient
 {
     private readonly UdpClient client = new();
 
-    private IPEndPoint server = new IPEndPoint(IPAddress.Any, 4567);
+    private IPEndPoint server = new(IPAddress.Any, 4567);
     private TimeSpan timeout = TimeSpan.FromMilliseconds(250);
     private int maxResend = 3;
 
+    /// <summary>
+    /// Id of client messages that is incremented with each message.
+    /// </summary>
     private ushort myId = 0;
+    /// <summary>
+    /// Id of server messages that is expected to increment with each message.
+    /// </summary>
     private ushort serverId;
+    /// <summary>
+    /// True until the first message with different port is received.
+    /// </summary>
     private bool firstMsg = true;
 
+    /// <summary>
+    /// Messages received out of order.
+    /// </summary>
     private List<(ushort id, object msg)> received = [];
+    /// <summary>
+    /// Sent messages waiting to be confirmed.
+    /// </summary>
     private List<SentMessage> sent = [];
-    public int MaxParalel { get; set; }
+    /// <summary>
+    /// Maximum number of unconfirmed messages to sent before waiting for
+    /// confirmation.
+    /// </summary>
+    public int MaxParalel { get; set; } = 1;
 
+    /// <summary>
+    /// Messages waiting to be sent in order.
+    /// </summary>
     private Queue<SentMessage> sendQueue = [];
+    /// <summary>
+    /// Received messages in the correct order.
+    /// </summary>
     private Queue<object> recvQueue = [];
 
     protected override void Init(Args args)
@@ -72,21 +97,31 @@ public class UdpChatClient : ChatClient
         Send();
     }
 
+    /// <summary>
+    /// Process all pending received messages
+    /// </summary>
     private void Recv()
     {
+        // Read all messages
         while (client.Available != 0)
         {
+            // listen on all ports when we expect the server port to change
             if (firstMsg) {
                 server.Port = 0;
             }
 
             var data = client.Receive(ref server);
             var (id, msg) = MessageParser.Parse(data);
+            // immidietely confirm the message
             SendConfirm(id);
 
-            // swap the endianness of the ID because there is a bug in the
-            // reference server that sends the id in LE instead of BE
-            id = (ushort)((id << 8) | (id >> 8));
+            // swap the endianness of the ID, if it seems that it is incorrect
+            // because there is bug in the reference server that it sends the
+            // id in LE instead of BE.
+            var id2 = (ushort)((id << 8) | (id >> 8));
+            if (Math.Abs(id2 - serverId) < Math.Abs(id - serverId)) {
+                id = id2;
+            }
 
             MsgAction(id, msg);
         }
@@ -94,6 +129,9 @@ public class UdpChatClient : ChatClient
         PushReceived();
     }
 
+    /// <summary>
+    /// Resend remeouted messages and send new pending messages.
+    /// </summary>
     private void Send()
     {
         ResendTimeouted();
@@ -107,6 +145,11 @@ public class UdpChatClient : ChatClient
         }
     }
 
+    /// <summary>
+    /// Do action based on the received message.
+    /// </summary>
+    /// <param name="id">Id of the received message.</param>
+    /// <param name="m">The received message.</param>
     private void MsgAction(ushort id, object m)
     {
         switch (m)
@@ -152,6 +195,11 @@ public class UdpChatClient : ChatClient
         client.Send(msg.Msg.AsSpan(..msg.Length), server);
     }
 
+    /// <summary>
+    /// Remove message withe the given id from the unconfirmed sent messages
+    /// because it has been confirmed by the server.
+    /// </summary>
+    /// <param name="id">id of the message that has been confirmed</param>
     private void ConfirmSent(ushort id)
     {
         int i = sent.FindIndex(p => p.Id == id);
@@ -161,6 +209,9 @@ public class UdpChatClient : ChatClient
         }
     }
 
+    /// <summary>
+    /// Move messages that are in order from received to recvQueue.
+    /// </summary>
     private void PushReceived()
     {
         var cont = true;
@@ -185,6 +236,10 @@ public class UdpChatClient : ChatClient
         }
     }
 
+    /// <summary>
+    /// Queue message to be sent.
+    /// </summary>
+    /// <param name="msg">Message to add to the queue.</param>
     private void QueueToSend(SentMessage msg)
     {
         sendQueue.Enqueue(msg);

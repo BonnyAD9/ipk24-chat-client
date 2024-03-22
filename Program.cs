@@ -8,18 +8,35 @@ namespace IpkChat2024Client;
 
 static class Program
 {
-
+    /// <summary>
+    /// Sleep time between each iteration.
+    /// </summary>
     static readonly TimeSpan sleepTime = TimeSpan.FromMilliseconds(10);
+    /// <summary>
+    /// Used for console interaction.
+    /// </summary>
     static ConsoleReader reader = new();
+    /// <summary>
+    /// The client for sending and receiving messages.
+    /// </summary>
     static ChatClient client = null!;
+    /// <summary>
+    /// True if non standard features are enabled.
+    /// </summary>
     static bool nonStandard =
         Environment.GetEnvironmentVariable("IS_BONNYAD9") == "YES";
 
     public static void Main(string[] args) =>
         Environment.Exit(Start(args.AsSpan()));
 
+    /// <summary>
+    /// The entry point for the application.
+    /// </summary>
+    /// <param name="argv">CLI arguments.</param>
+    /// <returns>Error code.</returns>
     public static int Start(ReadOnlySpan<string> argv)
     {
+        // parse args
         Args args;
         try
         {
@@ -37,11 +54,12 @@ static class Program
         }
 
         args.EnableNonStandardFeatures = nonStandard;
-
-        InitANSI();
-
         Validators.ExtendChannel = nonStandard;
 
+        // init colors.
+        InitANSI();
+
+        // Choose what to do.
         switch (args.Action)
         {
             case Cli.Action.Help:
@@ -56,6 +74,7 @@ static class Program
                 throw new UnreachableException("Invalid action");
         }
 
+        // Initialize
         try
         {
             Prepare(args);
@@ -66,6 +85,7 @@ static class Program
             return 1;
         }
 
+        // Run the mainloop
         return RunClient();
     }
 
@@ -76,6 +96,7 @@ static class Program
             Console.Write("Conneting... ");
         }
 
+        // Initialize the connection.
         client.Connect(args);
 
         if (!Console.IsInputRedirected)
@@ -88,6 +109,7 @@ static class Program
             Console.WriteLine($"{g}Done!{reset}");
         }
 
+        // Initialize the reader.
         reader.Init();
 
         if (nonStandard) {
@@ -98,8 +120,10 @@ static class Program
 
     private static int RunClient()
     {
+        // The mainloop
         while (true)
         {
+            // Read from console.
             string? line;
             try
             {
@@ -107,9 +131,11 @@ static class Program
             }
             catch (CtrlCException)
             {
+                // Exit when Ctrl+C is pressed.
                 break;
             }
 
+            // Process the line readed from console.
             if (line is not null && line.Length != 0)
             {
                 try
@@ -122,6 +148,7 @@ static class Program
                 }
             }
 
+            // Check for new received messages.
             try
             {
                 while (Receive())
@@ -132,9 +159,12 @@ static class Program
                 reader.EWriteLine($"{r}ERR:{reset} {ex.Message}");
             }
 
+            // Sleep for little while so that the CPU doesn't burn from doing
+            // nothing
             Thread.Sleep(sleepTime);
         }
 
+        // Close the connection.
         try
         {
             client.Bye();
@@ -147,14 +177,21 @@ static class Program
         return 0;
     }
 
+    /// <summary>
+    /// Parses the command and does appropriate action.
+    /// </summary>
+    /// <param name="c">The command the user typed.</param>
+    /// <exception cref="InvalidOperationException">Invalid command</exception>
     static void RunCommand(string c)
     {
+        // Differentiate between commands and regural messages.
         if (!c.StartsWith('/'))
         {
             client.Send(c);
             return;
         }
 
+        // extensions
         switch (c)
         {
             case "/clear" or "/claer":
@@ -162,6 +199,7 @@ static class Program
                 return;
         }
 
+        // Parse the standard commands
         var cmd = c.AsSpan()[1..];
 
         const string authCmd = "auth ";
@@ -261,6 +299,13 @@ static class Program
         }
     }
 
+    /// <summary>
+    /// Check for new messages from the server.
+    /// </summary>
+    /// <returns>
+    /// True when new message has been processed. False when there was no new
+    /// message
+    /// </returns>
     static bool Receive()
     {
         switch (client.Receive()) {
@@ -339,7 +384,7 @@ static class Program
         return 0;
     }
 
-    // ANSI stuff
+    // ANSI codes that are set conditionally.
 
     static string sign = "";
     static string r = "";

@@ -1,16 +1,42 @@
 namespace IpkChat2024Client.Cli;
 
+/// <summary>
+/// Contains the parsed command line arguments
+/// </summary>
 public class Args
 {
+    /// <summary>
+    /// Action that should be done
+    /// </summary>
     public Action Action { get; private set; } = Action.None;
+    /// <summary>
+    /// Server address
+    /// </summary>
     public string? Address { get; private set; } = null;
+    /// <summary>
+    /// Server port
+    /// </summary>
     public ushort Port { get; private set; } = 4567;
+    /// <summary>
+    /// UDP confirmation timeout, 250ms by default
+    /// </summary>
     public TimeSpan UdpConfirmationTimeout { get; private set; } =
         TimeSpan.FromMilliseconds(250);
+    /// <summary>
+    /// Max number of retransmitions of UDP message, 3 by default
+    /// </summary>
     public byte MaxUdpRetransmitions { get; private set; } = 3;
-    public bool ShowHelp { get; private set; } = false;
+    /// <summary>
+    /// When true, enables features that interfere with the specification
+    /// </summary>
     public bool EnableNonStandardFeatures { get; set; } = false;
 
+    /// <summary>
+    /// Parses the command line arguments
+    /// </summary>
+    /// <param name="args">Command line arguments to parse</param>
+    /// <returns>Parsed command line arguments</returns>
+    /// <exception cref="ArgumentException">For invalid arguments</exception>
     public static Args Parse(ReadOnlySpan<string> args) {
         var res = new Args();
         res.ParseMethod(args);
@@ -87,7 +113,7 @@ public class Args
         return res;
     }
 
-    private string TakeSecond(ref ReadOnlySpan<string> args) {
+    private static string TakeSecond(ref ReadOnlySpan<string> args) {
         if (args.Length < 2) {
             throw new ArgumentException(
                 $"Expected parameter to argument '{args[0]}'"

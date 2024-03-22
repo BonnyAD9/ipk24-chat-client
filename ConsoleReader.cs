@@ -1,14 +1,18 @@
+namespace IpkChat2024Client;
+
 using System.Text;
 using Bny.Console;
 
+/// <summary>
+/// This class is used for interaction with the console. It handles reading
+/// from stdin without blocking and printing to console while the user is
+/// typing. It also properly handles situations where some of the standard
+/// streams is not connected to the console.
+/// </summary>
 class ConsoleReader
 {
     private readonly StringBuilder typed = new();
     private int position = 0;
-    private readonly bool isOutConsole = !Console.IsOutputRedirected;
-    private readonly bool isErrConsole = !Console.IsErrorRedirected;
-    private readonly bool isInConsole = !Console.IsInputRedirected;
-    private int lastWidth = 0;
     private string prompt = "";
     public string Prompt
     {
@@ -19,10 +23,33 @@ class ConsoleReader
             Reprint();
         }
     }
-    private int TermPos => position + PromptLength;
-    private int TermLeft => TermPos % lastWidth;
+    /// <summary>
+    /// Number of characters in Prompt that will be printed to screen.
+    /// </summary>
     public int PromptLength { get; set; }
+    /// <summary>
+    /// X coordinate of the cursor if everything was on single line.
+    /// </summary>
+    private int TermPos => position + PromptLength;
 
+    // cache theese values because getting them may be expensive.
+    private readonly bool isOutConsole = !Console.IsOutputRedirected;
+    private readonly bool isErrConsole = !Console.IsErrorRedirected;
+    private readonly bool isInConsole = !Console.IsInputRedirected;
+
+    /// <summary>
+    /// Cached width of the console buffer in characters.
+    /// </summary>
+    private int lastWidth = 0;
+    /// <summary>
+    /// Calculate the x position of the cursor in console using chached values.
+    /// </summary>
+    private int TermLeft => TermPos % lastWidth;
+
+    /// <summary>
+    /// Initializes the reader. Since call to this, interaction with the
+    /// should be done exclusively with this instance.
+    /// </summary>
     public void Init() {
         if (isOutConsole) {
             Term.Save();
@@ -30,8 +57,19 @@ class ConsoleReader
         }
     }
 
+    /// <summary>
+    /// React on user input in the console.
+    /// </summary>
+    /// <returns>
+    /// One line that the user typed. Null if the user has not typed one full
+    /// line yet.
+    /// </returns>
+    /// <exception cref="CtrlCException">
+    /// Thrown when user pressed Ctrl+C
+    /// </exception>
     public string? TryReadLine()
     {
+        // Cache the terminal width.
         if (isOutConsole) {
             var newWidth = Console.BufferWidth;
             if (newWidth != lastWidth) {
@@ -40,9 +78,12 @@ class ConsoleReader
             }
         }
 
+        // React on user input while there is any.
         while (Console.KeyAvailable)
         {
             var key = Console.ReadKey(true);
+
+            // Check if the user typed one whole line.
             if (key.KeyChar == '\n' || key.Key == ConsoleKey.Enter)
             {
                 position = typed.Length;
@@ -64,6 +105,7 @@ class ConsoleReader
                 return res;
             }
 
+            // Check for Ctrl+C
             if (key.Key == ConsoleKey.C && key.Modifiers == ConsoleModifiers.Control) {
                 position = typed.Length;
                 if (isOutConsole) {
@@ -73,11 +115,13 @@ class ConsoleReader
                 throw new CtrlCException();
             }
 
+            // If the input is not console, read as if it was file.
             if (!isInConsole) {
                 typed.Append(key.KeyChar);
                 continue;
             }
 
+            // React on special keys.
             switch (key.Key)
             {
                 case ConsoleKey.Backspace:
@@ -142,18 +186,23 @@ class ConsoleReader
                     }
                     break;
                 default:
-                    if (!char.IsControl(key.KeyChar))
+                    // Check if the character is printable
+                    if (char.IsControl(key.KeyChar))
                     {
-                        typed.Insert(position, key.KeyChar);
-                        ++position;
-                        if (isOutConsole) {
-                            bool isEnd = TermLeft == 0 && TermPos != 0;
-                            Console.Write(key.KeyChar);
-                            if (isEnd) {
-                                Ln();
-                            }
-                            PrintFromPosition();
+                        break;
+                    }
+
+                    // Insert the user typed printable character at the current
+                    // position.
+                    typed.Insert(position, key.KeyChar);
+                    ++position;
+                    if (isOutConsole) {
+                        bool isEnd = TermLeft == 0 && TermPos != 0;
+                        Console.Write(key.KeyChar);
+                        if (isEnd) {
+                            Ln();
                         }
+                        PrintFromPosition();
                     }
                     break;
             }
@@ -162,6 +211,10 @@ class ConsoleReader
         return null;
     }
 
+    /// <summary>
+    /// Print to the standard output.
+    /// </summary>
+    /// <param name="str">What to print.</param>
     public void WriteLine(string str) {
         if (!isOutConsole) {
             Console.WriteLine(str);
@@ -180,6 +233,10 @@ class ConsoleReader
         ToPosition();
     }
 
+    /// <summary>
+    /// Print to the standard error output.
+    /// </summary>
+    /// <param name="str">What to print.</param>
     public void EWriteLine(string str) {
         if (!isErrConsole) {
             Console.Error.WriteLine(str);
@@ -205,6 +262,8 @@ class ConsoleReader
             return;
         }
 
+        // properly handle when the cursor is all the way left and it shoud
+        // jump to the end of the previous line.
         if (TermLeft == 0) {
             Term.Form(Term.upStart, 1, Term.right, lastWidth - 1);
         } else {
@@ -217,6 +276,8 @@ class ConsoleReader
             return;
         }
 
+        // properly handle when the cursor is all the way right and it should
+        // jump to the start of the next line.
         if (TermLeft == lastWidth - 1) {
             Term.Form(Term.downStart, 1);
         } else {
@@ -224,6 +285,10 @@ class ConsoleReader
         }
     }
 
+    /// <summary>
+    /// Prints to stdout all the typed data from the cursor position. Does
+    /// nothing when stdout is redirected.
+    /// </summary>
     private void PrintFromPosition() {
         if (!isOutConsole) {
             return;
@@ -233,6 +298,9 @@ class ConsoleReader
         ToPosition();
     }
 
+    /// <summary>
+    /// Moves cursor to the correct position where the user should see it.
+    /// </summary>
     private void ToPosition() {
         if (!isOutConsole) {
             return;
@@ -250,6 +318,9 @@ class ConsoleReader
         }
     }
 
+    /// <summary>
+    /// Prints one line.
+    /// </summary>
     private void Ln() {
         if (isOutConsole) {
             Console.Write("\r\n");
@@ -258,6 +329,9 @@ class ConsoleReader
         }
     }
 
+    /// <summary>
+    /// Clear the console screen and buffer and move cursor to the top left.
+    /// </summary>
     internal void Clear()
     {
         if (isOutConsole) {
@@ -266,6 +340,9 @@ class ConsoleReader
         }
     }
 
+    /// <summary>
+    /// Refreshes the typed data that the user sees.
+    /// </summary>
     private void Reprint() {
         if (!isOutConsole) {
             return;

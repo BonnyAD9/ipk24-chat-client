@@ -2,6 +2,19 @@ using System.Text;
 
 namespace IpkChat2024Client.Udp;
 
+/// <summary>
+/// Represents serialized message that was or can be sent via the UDP variant
+/// of the IPK protocol.
+/// </summary>
+/// <param name="Id">Unique id of the message.</param>
+/// <param name="Msg">The serialized message.</param>
+/// <param name="Length">Length of the serialized message.</param>
+/// <param name="Time">
+/// When the message was sent, this is time of creation of this record when the message was not sent
+/// </param>
+/// <param name="Resend">
+/// How many times it has been resent, this is 0 for new message.
+/// </param>
 record struct SentMessage(
     ushort Id,
     byte[] Msg,
@@ -9,12 +22,31 @@ record struct SentMessage(
     DateTime Time,
     int Resend
 ) {
+    /// <summary>
+    /// Create serialized message
+    /// </summary>
+    /// <param name="id">Id of the message</param>
+    /// <param name="msg">The message data</param>
+    /// <param name="len">Length of the message</param>
     public SentMessage(ushort id, byte[] msg, int len) :
         this(id, msg, len, DateTime.Now, 0) {}
 
+    /// <summary>
+    /// Create serialized message.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="msg">The message data.</param>
     public SentMessage(ushort id, byte[] msg) :
         this(id, msg, msg.Length, DateTime.Now, 0) {}
 
+    /// <summary>
+    /// Create the AUTH message.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="username">Authorization username.</param>
+    /// <param name="secret">Authorization password.</param>
+    /// <param name="displayName">Display name of the sender.</param>
+    /// <returns>Serialized message.</returns>
     public static SentMessage Authorize(
         ushort id,
         ReadOnlySpan<char> username,
@@ -38,6 +70,11 @@ record struct SentMessage(
         return LeaveEnd(id, arr, buf.Length);
     }
 
+    /// <summary>
+    /// Create BYE message.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <returns>Serialized BYE message.</returns>
     public static SentMessage Bye(ushort id)
     {
         var arr = new byte[3];
@@ -46,24 +83,55 @@ record struct SentMessage(
         return new SentMessage(id, arr);
     }
 
+    /// <summary>
+    /// Create JOIN message.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="channel">Channel to join.</param>
+    /// <param name="displayName">Display name of the sender.</param>
+    /// <returns>Serialized JOIN message.</returns>
     public static SentMessage Join(
         ushort id,
         ReadOnlySpan<char> channel,
         ReadOnlySpan<char> displayName
     ) => Make2String(id, MessageType.Join, channel, displayName);
 
+    /// <summary>
+    /// Crate MSG message.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="displayName">Display name of the sender.</param>
+    /// <param name="content">The message content.</param>
+    /// <returns>Serialized MSG message.</returns>
     public static SentMessage MakeMsg(
         ushort id,
         ReadOnlySpan<char> displayName,
         ReadOnlySpan<char> content
     ) => Make2String(id, MessageType.Msg, displayName, content);
 
+    /// <summary>
+    /// Create ERROR message.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="displayName">Display name of the sender.</param>
+    /// <param name="content">The message content.</param>
+    /// <returns>Serialized ERROR message.</returns>
     public static SentMessage Err(
         ushort id,
         ReadOnlySpan<char> displayName,
         ReadOnlySpan<char> content
     ) => Make2String(id, MessageType.Err, displayName, content);
 
+    /// <summary>
+    /// Create message that consists of two strings.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="type">Message type</param>
+    /// <param name="s1">First string.</param>
+    /// <param name="s2">Second string.</param>
+    /// <returns>
+    /// Serialized message of the given type with the two strings.
+    /// </returns>
     private static SentMessage Make2String(
         ushort id,
         MessageType type,
@@ -82,6 +150,13 @@ record struct SentMessage(
         return LeaveEnd(id, arr, buf.Length);
     }
 
+    /// <summary>
+    /// Creates SentMessage from message data that has padding at the end.
+    /// </summary>
+    /// <param name="id">Id of the message.</param>
+    /// <param name="msg">The message data.</param>
+    /// <param name="leave">The padding at the end.</param>
+    /// <returns>The new message.</returns>
     private static SentMessage LeaveEnd(ushort id, byte[] msg, int leave) =>
         new SentMessage(id, msg, msg.Length - leave);
 

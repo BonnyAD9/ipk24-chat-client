@@ -25,6 +25,7 @@ class MessageParser
             return null;
         }
 
+        // determine the message type
         var msg = Encoding.ASCII.GetString(readed.WrittenSpan).AsSpan();
         readed.Clear();
         if (msg.StartsWith("ERR "))
@@ -103,7 +104,7 @@ class MessageParser
         return new MsgMessage(name.ToString(), content.ToString());
     }
 
-    private ByeMessage ParseBye(ReadOnlySpan<char> msg)
+    private static ByeMessage ParseBye(ReadOnlySpan<char> msg)
     {
         if (!msg.SequenceEqual("BYE\r\n"))
         {
@@ -113,7 +114,7 @@ class MessageParser
         return new();
     }
 
-    private ReadOnlySpan<char> ParseFromName(ref ReadOnlySpan<char> msg)
+    private static ReadOnlySpan<char> ParseFromName(ref ReadOnlySpan<char> msg)
     {
         [DoesNotReturn]
         void Throw()
@@ -141,7 +142,7 @@ class MessageParser
         return name;
     }
 
-    private ReadOnlySpan<char> ParseIsContent(ReadOnlySpan<char> msg)
+    private static ReadOnlySpan<char> ParseIsContent(ReadOnlySpan<char> msg)
     {
         const string isMsg = "IS ";
         if (!msg.StartsWith(isMsg))

@@ -6,6 +6,9 @@ using IpkChat2024Client.Cli;
 
 namespace IpkChat2024Client.Tcp;
 
+/// <summary>
+/// IPK chat client using the TCP protocol
+/// </summary>
 public class TcpChatClient : ChatClient
 {
     private TcpClient client = new();
