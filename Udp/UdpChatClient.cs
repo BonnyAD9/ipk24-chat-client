@@ -118,9 +118,8 @@ public class UdpChatClient : ChatClient
             // swap the endianness of the ID, if it seems that it is incorrect
             // because there is bug in the reference server that it sends the
             // id in LE instead of BE.
-            var id2 = (ushort)((id << 8) | (id >> 8));
-            if (Math.Abs(id2 - serverId) < Math.Abs(id - serverId)) {
-                id = id2;
+            if (!firstMsg) {
+                id = CheckEndianness(id);
             }
 
             MsgAction(id, msg);
@@ -254,5 +253,24 @@ public class UdpChatClient : ChatClient
             (byte)id
         ];
         client.Send(buf, server);
+    }
+
+    /// <summary>
+    /// Swaps the endianness of the ID, if it seems that it is incorrect.
+    /// </summary>
+    /// <param name="id">The id</param>
+    /// <returns>Id with the endianness that should be correct</returns>
+    private ushort CheckEndianness(ushort id)
+    {
+        // tolerance for wrapping from ushort.MaxValue to 0
+        const ushort tolerance = 16;
+
+        var id2 = (ushort)((id << 8) | (id >> 8));
+        if ((serverId + tolerance > ushort.MaxValue)
+            ^ (Math.Abs(id2 - serverId) < Math.Abs(id - serverId))
+        ) {
+            return id2;
+        }
+        return id;
     }
 }
