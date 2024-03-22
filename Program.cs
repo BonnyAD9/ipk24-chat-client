@@ -36,6 +36,8 @@ static class Program
             nonStandard = true;
         }
 
+        args.EnableNonStandardFeatures = nonStandard;
+
         InitANSI();
 
         Validators.ExtendChannel = nonStandard;

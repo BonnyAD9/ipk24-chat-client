@@ -9,7 +9,7 @@ public class Args
         TimeSpan.FromMilliseconds(250);
     public byte MaxUdpRetransmitions { get; private set; } = 3;
     public bool ShowHelp { get; private set; } = false;
-    public bool EnableNonStandardFeatures { get; private set; } = false;
+    public bool EnableNonStandardFeatures { get; set; } = false;
 
     public static Args Parse(ReadOnlySpan<string> args) {
         var res = new Args();

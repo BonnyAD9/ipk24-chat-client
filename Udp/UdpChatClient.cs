@@ -10,7 +10,7 @@ public class UdpChatClient : ChatClient
 
     private IPEndPoint server = new IPEndPoint(IPAddress.Any, 4567);
     private TimeSpan timeout = TimeSpan.FromMilliseconds(250);
-    private int maxResend = 4;
+    private int maxResend = 3;
 
     private ushort myId = 0;
     private ushort serverId;
@@ -25,6 +25,8 @@ public class UdpChatClient : ChatClient
 
     protected override void Init(Args args)
     {
+        timeout = args.UdpConfirmationTimeout;
+        maxResend = args.MaxUdpRetransmitions;
         server.Address = Dns
             .GetHostEntry(args.Address!)
             .AddressList
@@ -145,11 +147,9 @@ public class UdpChatClient : ChatClient
                 "Failed to send udp message: didn't receive response"
             );
         }
-        else
-        {
-            sent[idx] = msg;
-            client.Send(msg.Msg.AsSpan(..msg.Length), server);
-        }
+
+        sent[idx] = msg;
+        client.Send(msg.Msg.AsSpan(..msg.Length), server);
     }
 
     private void ConfirmSent(ushort id)
