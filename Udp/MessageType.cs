@@ -1,4 +1,4 @@
-namespace IpkChat2024Client.Udp;
+namespace Ipk24ChatClient.Udp;
 
 /// <summary>
 /// Type of message, values are the same as the message type in the UDP variant

@@ -2,9 +2,9 @@ using System.Buffers;
 using System.Net.Sockets;
 using System.Text;
 using System.Data;
-using IpkChat2024Client.Cli;
+using Ipk24ChatClient.Cli;
 
-namespace IpkChat2024Client.Tcp;
+namespace Ipk24ChatClient.Tcp;
 
 /// <summary>
 /// IPK chat client using the TCP protocol

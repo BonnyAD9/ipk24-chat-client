@@ -1,4 +1,4 @@
-namespace IpkChat2024Client.Udp;
+namespace Ipk24ChatClient.Udp;
 
 /// <summary>
 /// Thrown when udp message fails to parse, but the id of the message is known.

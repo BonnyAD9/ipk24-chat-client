@@ -1,4 +1,4 @@
-namespace IpkChat2024Client.Cli;
+namespace Ipk24ChatClient.Cli;
 
 /// <summary>
 /// Action to take, specified by CLI

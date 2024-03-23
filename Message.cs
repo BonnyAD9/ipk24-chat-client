@@ -1,4 +1,4 @@
-namespace IpkChat2024Client;
+namespace Ipk24ChatClient;
 
 // Here are classes only for messages that are sent by the server.
 

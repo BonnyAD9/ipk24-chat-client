@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace IpkChat2024Client.Udp;
+namespace Ipk24ChatClient.Udp;
 
 /// <summary>
 /// Represents serialized message that was or can be sent via the UDP variant

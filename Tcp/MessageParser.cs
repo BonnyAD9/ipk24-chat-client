@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Text;
 
-namespace IpkChat2024Client.Tcp;
+namespace Ipk24ChatClient.Tcp;
 
 class MessageParser
 {

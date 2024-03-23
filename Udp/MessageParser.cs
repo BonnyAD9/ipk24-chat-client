@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 
-namespace IpkChat2024Client.Udp;
+namespace Ipk24ChatClient.Udp;
 
 /// <summary>
 /// Used to parse binary UDP messages for the IPK protocol

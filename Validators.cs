@@ -1,4 +1,4 @@
-namespace IpkChat2024Client;
+namespace Ipk24ChatClient;
 
 /// <summary>
 /// Validates data from the user.

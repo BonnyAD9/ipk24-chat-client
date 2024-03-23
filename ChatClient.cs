@@ -1,7 +1,7 @@
-using IpkChat2024Client.Cli;
-using IpkChat2024Client.Tcp;
+using Ipk24ChatClient.Cli;
+using Ipk24ChatClient.Tcp;
 
-namespace IpkChat2024Client;
+namespace Ipk24ChatClient;
 
 public abstract class ChatClient
 {

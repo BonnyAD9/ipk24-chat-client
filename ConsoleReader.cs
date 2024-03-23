@@ -1,4 +1,4 @@
-namespace IpkChat2024Client;
+namespace Ipk24ChatClient;
 
 using System.Text;
 using Bny.Console;

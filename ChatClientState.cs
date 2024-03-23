@@ -1,4 +1,4 @@
-namespace IpkChat2024Client.Tcp;
+namespace Ipk24ChatClient.Tcp;
 
 /// <summary>
 /// Represents the state of the client.

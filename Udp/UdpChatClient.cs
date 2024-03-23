@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Sockets;
-using IpkChat2024Client.Cli;
+using Ipk24ChatClient.Cli;
 
-namespace IpkChat2024Client.Udp;
+namespace Ipk24ChatClient.Udp;
 
 public class UdpChatClient : ChatClient
 {
