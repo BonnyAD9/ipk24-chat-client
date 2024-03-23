@@ -50,6 +50,7 @@ public class UdpChatClient : ChatClient
 
     protected override void Init(Args args)
     {
+        MaxParalel = args.MaxUdpMessagesAtOnce;
         timeout = args.UdpConfirmationTimeout;
         maxResend = args.MaxUdpRetransmitions;
         server.Address = Dns

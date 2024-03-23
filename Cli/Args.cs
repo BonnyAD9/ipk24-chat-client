@@ -27,9 +27,17 @@ public class Args
     /// </summary>
     public byte MaxUdpRetransmitions { get; private set; } = 3;
     /// <summary>
+    /// Max number of messages to send before getting confirmation
+    /// </summary>
+    public byte MaxUdpMessagesAtOnce { get; private set; } = 1;
+    /// <summary>
     /// When true, enables features that interfere with the specification
     /// </summary>
     public bool EnableNonStandardFeatures { get; set; } = false;
+    /// <summary>
+    /// Determines whenther to use color.
+    /// </summary>
+    public ColorMode ColorMode { get; set; } = ColorMode.Auto;
 
     /// <summary>
     /// Parses the command line arguments
@@ -95,6 +103,19 @@ public class Args
                     EnableNonStandardFeatures = true;
                     args = args[1..];
                     break;
+                case "-w" or "--udp-window" or "--max-udp-messages":
+                    MaxUdpMessagesAtOnce = ParseArg<byte>(ref args);
+                    break;
+                case "--color" or "--colour":
+                    ColorMode = ParseColorMode(TakeSecond(ref args));
+                    break;
+                case string s when s.StartsWith("--color=")
+                    || s.StartsWith("--colour="):
+                    ColorMode = ParseColorMode(
+                        s.AsSpan((s.IndexOf('=') + 1)..)
+                    );
+                    args = args[1..];
+                    break;
                 default:
                     throw new ArgumentException($"Unknown argument {args[0]}");
             }
@@ -123,4 +144,16 @@ public class Args
         args = args[2..];
         return res;
     }
+
+    private static ColorMode ParseColorMode(ReadOnlySpan<char> mode) =>
+        mode switch
+        {
+            "auto" => ColorMode.Auto,
+            "always" => ColorMode.Always,
+            "never" => ColorMode.Never,
+            _ => throw new ArgumentException(
+                $"Invalid color mode '{mode}' expected one of: 'auto', "
+                    + "'always', 'never'"
+            ),
+        };
 }
