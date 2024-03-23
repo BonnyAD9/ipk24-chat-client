@@ -408,7 +408,7 @@ static class Program
             {g}Envirnoment variables:
               {m}IPK_EXTEND{dgr}[=(YES | <other>)]{reset}
                 When set to {w}YES{reset}, enables non-standard quality of life
-                features improvements that would otherwise interfere with the
+                improvements that would otherwise interfere with the
                 specification. Otherwise doesn't affect the setting. This can
                 be also enabled with the {y}-e {reset}flag.
             """
