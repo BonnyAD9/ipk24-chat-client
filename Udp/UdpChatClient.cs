@@ -87,11 +87,31 @@ public class UdpChatClient : ChatClient
         return null;
     }
 
-    protected override void Flush() => Update();
+    protected override void Close()
+    {
+        var sleep = TimeSpan.FromMilliseconds(10);
 
-    protected override void Close() => client.Close();
+        // wait for all pending messages to be sent
+        while (sent.Count != 0)
+        {
+            Update();
+            Thread.Sleep(sleep);
+        }
 
-    public void Update()
+        var recvStart = DateTime.Now;
+        var maxWait = timeout * maxResend;
+
+        // wait to receive all messages, but not longet than maxWait
+        while (received.Count != 0 && DateTime.Now - recvStart < maxWait)
+        {
+            Update();
+            Thread.Sleep(sleep);
+        }
+
+        client.Close();
+    }
+
+    protected override void Update()
     {
         Recv();
         Send();
@@ -111,7 +131,21 @@ public class UdpChatClient : ChatClient
             }
 
             var data = client.Receive(ref server);
-            var (id, msg) = MessageParser.Parse(data);
+
+            // Parse the message
+            ushort id;
+            object? msg;
+            try
+            {
+                (id, msg) = MessageParser.Parse(data);
+            }
+            catch (UdpMessageParseException ex)
+            {
+                // Send confirmation even if the message fails to parse if
+                // the id is known.
+                SendConfirm(ex.Id);
+                throw;
+            }
             // immidietely confirm the message
             SendConfirm(id);
 

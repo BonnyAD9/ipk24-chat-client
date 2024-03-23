@@ -104,10 +104,12 @@ public abstract class ChatClient
         Flush();
     }
 
+    public void Bye() => Bye(true);
+
     /// <summary>
     /// Gracefuly close the connection.
     /// </summary>
-    public void Bye()
+    private void Bye(bool sendErr)
     {
         // Check if the action is valid in the current state.
         switch (state)
@@ -124,7 +126,7 @@ public abstract class ChatClient
 
         // Send the message.
         SendBye();
-        Flush();
+        Flush(sendErr);
 
         state = ChatClientState.End;
 
@@ -154,7 +156,7 @@ public abstract class ChatClient
     }
 
 
-    private void Err(ReadOnlySpan<char> msg)
+    private void Err(ReadOnlySpan<char> msg, bool sendErr = true)
     {
         // This is valid in every state.
 
@@ -164,8 +166,10 @@ public abstract class ChatClient
         // Send the message
         SendMsg(msg);
 
+        Flush(sendErr);
+
         // Exit the connection
-        Bye();
+        Bye(sendErr);
     }
 
     /// <summary>
@@ -211,6 +215,27 @@ public abstract class ChatClient
         }
     }
 
+    private void Flush(bool sendErr = true)
+    {
+        if (!sendErr)
+        {
+            Update();
+            return;
+        }
+
+        try
+        {
+            Update();
+        }
+        catch (Exception ex)
+        {
+            // The false here aviods infinite recursion in cases when the error
+            // is that we can't send messages.
+            Err(ex.Message, sendErr: false);
+            throw;
+        }
+    }
+
     /// <summary>
     /// Initializes the client with the CLI arguments.
     /// </summary>
@@ -253,7 +278,7 @@ public abstract class ChatClient
     /// <summary>
     /// Flush all the messages.
     /// </summary>
-    protected abstract void Flush();
+    protected abstract void Update();
 
     /// <summary>
     /// Close the connectoin.

@@ -87,7 +87,7 @@ public class TcpChatClient : ChatClient
     protected override object? TryReceive() =>
         parser.Parse(client.GetStream());
 
-    protected override void Flush() => client.GetStream().Flush();
+    protected override void Update() => client.GetStream().Flush();
 
     protected override void Close() => client.Close();
 }

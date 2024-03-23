@@ -31,21 +31,28 @@ static class MessageParser
 
         ushort id = ParseUshort(ref data);
 
-        // Parse based on the type of the message
-        return (
-            id,
-            type switch
-            {
-                MessageType.Confirm => ParseConfirm(data, id),
-                MessageType.Reply => ParseReply(data),
-                MessageType.Msg => ParseMsg(data),
-                MessageType.Err => ParseErr(data),
-                MessageType.Bye => ParseBye(data),
-                _ => throw new ProtocolViolationException(
-                    "Ipk over udp received unsupported message type"
-                ),
-            }
-        );
+        try
+        {
+            // Parse based on the type of the message
+            return (
+                id,
+                type switch
+                {
+                    MessageType.Confirm => ParseConfirm(data, id),
+                    MessageType.Reply => ParseReply(data),
+                    MessageType.Msg => ParseMsg(data),
+                    MessageType.Err => ParseErr(data),
+                    MessageType.Bye => ParseBye(data),
+                    _ => throw new ProtocolViolationException(
+                        "Ipk over udp received unsupported message type"
+                    ),
+                }
+            );
+        }
+        catch (Exception ex)
+        {
+            throw new UdpMessageParseException(ex, id);
+        }
     }
 
     private static ConfirmMessage ParseConfirm(ReadOnlySpan<byte> data, ushort id)
