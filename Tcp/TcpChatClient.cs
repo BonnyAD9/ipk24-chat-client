@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Net.Sockets;
 using System.Text;
 using System.Data;
 using Ipk24ChatClient.Cli;
@@ -11,8 +10,15 @@ namespace Ipk24ChatClient.Tcp;
 /// </summary>
 public class TcpChatClient : ChatClient
 {
-    private TcpClient client = new();
+    private ITcpClient client;
     private MessageParser parser = new();
+
+    public TcpChatClient(ITcpClient client)
+    {
+        this.client = client;
+    }
+
+    public TcpChatClient() : this(new TcpClient()) {}
 
     protected override void Init(Args args) =>
         client.Connect(args.Address!, args.Port);
@@ -34,10 +40,10 @@ public class TcpChatClient : ChatClient
 
         writer.Write("\r\n"u8);
 
-        client.GetStream().Write(writer.WrittenSpan);
+        client.Write(writer.WrittenSpan);
     }
 
-    protected override void SendBye() => client.GetStream().Write("BYE\r\n"u8);
+    protected override void SendBye() => client.Write("BYE\r\n"u8);
 
     protected override void SendJoin(ReadOnlySpan<char> channel)
     {
@@ -51,7 +57,7 @@ public class TcpChatClient : ChatClient
 
         writer.Write("\r\n"u8);
 
-        client.GetStream().Write(writer.WrittenSpan);
+        client.Write(writer.WrittenSpan);
     }
 
     protected override void SendMsg(ReadOnlySpan<char> content)
@@ -66,7 +72,7 @@ public class TcpChatClient : ChatClient
 
         writer.Write("\r\n"u8);
 
-        client.GetStream().Write(writer.WrittenSpan);
+        client.Write(writer.WrittenSpan);
     }
 
     protected override void SendErr(ReadOnlySpan<char> content)
@@ -81,13 +87,13 @@ public class TcpChatClient : ChatClient
 
         writer.Write("\r\n"u8);
 
-        client.GetStream().Write(writer.WrittenSpan);
+        client.Write(writer.WrittenSpan);
     }
 
     protected override object? TryReceive() =>
-        parser.Parse(client.GetStream());
+        parser.Parse(client);
 
-    protected override void Update() => client.GetStream().Flush();
+    protected override void Update() => client.Flush();
 
     protected override void Close() => client.Close();
 }

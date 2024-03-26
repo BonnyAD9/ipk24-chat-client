@@ -6,7 +6,7 @@ namespace Ipk24ChatClient.Udp;
 /// <summary>
 /// Used to parse binary UDP messages for the IPK protocol
 /// </summary>
-static class MessageParser
+public static class MessageParser
 {
     /// <summary>
     /// Parse the given message.

@@ -6,7 +6,14 @@ namespace Ipk24ChatClient.Udp;
 
 public class UdpChatClient : ChatClient
 {
-    private readonly UdpClient client = new();
+    private readonly IUdpClient client;
+
+    public UdpChatClient(IUdpClient client)
+    {
+        this.client = client;
+    }
+
+    public UdpChatClient() : this(new UdpClient()) {}
 
     private IPEndPoint server = new(IPAddress.Any, 4567);
     private TimeSpan timeout = TimeSpan.FromMilliseconds(250);

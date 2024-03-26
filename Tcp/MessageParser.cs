@@ -1,11 +1,10 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Sockets;
 using System.Text;
 
 namespace Ipk24ChatClient.Tcp;
 
-class MessageParser
+public class MessageParser
 {
     private ArrayBufferWriter<byte> readed = new();
 
@@ -19,7 +18,7 @@ class MessageParser
     /// <exception cref="InvalidDataException">
     /// Thrown when the data is invalid message
     /// </exception>
-    public object? Parse(NetworkStream s)
+    public object? Parse(ITcpClient s)
     {
         if (!ReadMsg(s)) {
             return null;
@@ -48,11 +47,11 @@ class MessageParser
         throw new InvalidDataException($"Received unknown message type ('{msg}')");
     }
 
-    private bool ReadMsg(NetworkStream s)
+    private bool ReadMsg(ITcpClient s)
     {
         while (s.DataAvailable && !IsWholeMessage)
         {
-            var b = (byte)s.ReadByte();
+            var b = s.ReadByte();
             readed.Write(new(ref b));
         }
 
