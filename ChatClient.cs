@@ -178,6 +178,11 @@ public abstract class ChatClient
     /// <returns>Next message, null if there is no next message.</returns>
     public object? Receive()
     {
+        if (state == ChatClientState.End)
+        {
+            return null;
+        }
+
         // Check if this is valid in the current state.
         if (state == ChatClientState.Stopped)
         {
