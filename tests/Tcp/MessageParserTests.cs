@@ -3,7 +3,7 @@ using Ipk24ChatClient.Tcp;
 
 namespace Tests;
 
-public class MsgParser
+public class MessageParserTests
 {
     [Fact]
     public static void TestErr()
@@ -70,34 +70,5 @@ public class MsgParser
         TcpSender sender = new(data.ToArray());
         MessageParser parser = new();
         return parser.Parse(sender);
-    }
-
-    class TcpSender : ITcpClient
-    {
-        private byte[] data;
-        private int idx = 0;
-
-        public TcpSender(byte[] data)
-        {
-            this.data = data;
-        }
-        public bool DataAvailable => idx < data.Length;
-
-        public void Close()
-        {
-            idx = data.Length;
-        }
-
-        public void Connect(string address, ushort port)
-        {
-            _ = address;
-            _ = port;
-        }
-
-        public void Flush() {}
-
-        public byte ReadByte() => data[idx++];
-
-        public void Write(ReadOnlySpan<byte> data) {}
     }
 }
