@@ -4,7 +4,22 @@
 Author: **xstigl00**
 
 ## Contents
-TODO
+- [About](#about)
+- [Code structure](#code-structure)
+    - [`Ipk24ChatClient`](#ipk24chatclient)
+        - [Program entry point](#program-entry-point)
+        - [`ChatClient`](#chatclient)
+        - [Message records](#message-records)
+        - [User input in interactive terminal](#user-input-in-interactive-terminal)
+    - [`IpkChatClient.Udp`](#ipkchatclientudp)
+        - [`UdpChatClient`](#udpchatclient)
+            - [Sending](#sending)
+            - [Receiving](#receiving)
+    - [`IpkChatClient.Tcp`](#ipk24chatclienttcp)
+    - [`IpkChatClient.Cli`](#ipk24chatclientcli)
+- [Testing](#testing)
+- [Extra functionality](#extra-functionality)
+
 
 ## About
 The project is chat client using the `IPK24-CHAT` protocol in both its `UDP`
@@ -143,3 +158,24 @@ not be received at once and it is necesary to wait for new data.
 This namespace contains the logic for parsing the command line argumens. The
 parsing logic is implemented in methods of the class `Args`. The class itself
 than holds the information about the configuration from the command line.
+
+## Testing
+Core networking functionality is tested using unit tests in the folder `tests`.
+
+I also checked functionality of the app as whole manually with the reference
+server.
+
+## Extra functionality
+- **Useful extra prints**
+    - enabled with flag `-e` or by setting environment variable `IPK_EXTEND` to
+      `YES`
+- **Colored printing**
+    - enabled automatically when *extra prints* are enabled and the standard
+    output is terminal.
+    - can be also forced by `--color=always`
+- **Setting how many unconfirmend UDP messages may be sent**
+    - can be set with the flag `-w`.
+    - This is by default `1`.
++ Command `/clear` and `/claer` (I often mistype *clear* in this way)
+
+All of the extensions are also documented in the help commands.
