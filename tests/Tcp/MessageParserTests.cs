@@ -1,7 +1,7 @@
 using Ipk24ChatClient;
 using Ipk24ChatClient.Tcp;
 
-namespace Tests;
+namespace Tests.Tcp;
 
 public class MessageParserTests
 {

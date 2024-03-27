@@ -1,6 +1,6 @@
 using Ipk24ChatClient.Tcp;
 
-namespace Tests;
+namespace Tests.Tcp;
 
 public class TcpChatClientTests
 {
