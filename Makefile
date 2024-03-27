@@ -13,4 +13,5 @@ validate: submit
 	cd submit && unzip ../xstigl00.zip && make test && make && ./ipk24chat-client -h
 
 submit:
-	zip xstigl00.zip Makefile README.md `find . -name '*.cs' -o -name '*.csproj'`
+	zip xstigl00.zip Makefile LICENSE *.md \
+		`find . -name '*.cs' -o -name '*.csproj'`
