@@ -210,9 +210,11 @@ public abstract class ChatClient
                 Bye();
                 return msg;
             case ReplyMessage msg:
-                if (state is ChatClientState.Authorizing)
+                if (state == ChatClientState.Authorizing)
                 {
-                    state = ChatClientState.Open;
+                    state = msg.Ok
+                        ? ChatClientState.Open
+                        : ChatClientState.Started;
                 }
                 return msg;
             default:

@@ -23,3 +23,5 @@
 
 ### Environment variables
 - Enable extended features with the variable `IPK_EXTEND`
+
+I am unaware of any limitations.
