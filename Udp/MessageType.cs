@@ -4,7 +4,7 @@ namespace Ipk24ChatClient.Udp;
 /// Type of message, values are the same as the message type in the UDP variant
 /// of the IPK protocol.
 /// </summary>
-enum MessageType : byte
+public enum MessageType : byte
 {
     Confirm = 0x00,
     Reply = 0x01,

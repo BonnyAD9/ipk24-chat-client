@@ -15,7 +15,7 @@ namespace Ipk24ChatClient.Udp;
 /// <param name="Resend">
 /// How many times it has been resent, this is 0 for new message.
 /// </param>
-record struct SentMessage(
+public record struct SentMessage(
     ushort Id,
     byte[] Msg,
     int Length,
